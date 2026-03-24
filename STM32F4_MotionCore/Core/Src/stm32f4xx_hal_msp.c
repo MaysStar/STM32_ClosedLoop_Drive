@@ -26,6 +26,8 @@
 /* USER CODE END Includes */
 extern DMA_HandleTypeDef hdma_sdio_tx;
 
+extern DMA_HandleTypeDef hdma_sdio_rx;
+
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN TD */
 
@@ -81,15 +83,15 @@ void HAL_MspInit(void)
 }
 
 /**
-* @brief MMC MSP Initialization
+* @brief SD MSP Initialization
 * This function configures the hardware resources used in this example
-* @param hmmc: MMC handle pointer
+* @param hsd: SD handle pointer
 * @retval None
 */
-void HAL_MMC_MspInit(MMC_HandleTypeDef* hmmc)
+void HAL_SD_MspInit(SD_HandleTypeDef* hsd)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-  if(hmmc->Instance==SDIO)
+  if(hsd->Instance==SDIO)
   {
   /* USER CODE BEGIN SDIO_MspInit 0 */
 
@@ -101,10 +103,14 @@ void HAL_MMC_MspInit(MMC_HandleTypeDef* hmmc)
     __HAL_RCC_GPIOD_CLK_ENABLE();
     /**SDIO GPIO Configuration
     PC8     ------> SDIO_D0
+    PC9     ------> SDIO_D1
+    PC10     ------> SDIO_D2
+    PC11     ------> SDIO_D3
     PC12     ------> SDIO_CK
     PD2     ------> SDIO_CMD
     */
-    GPIO_InitStruct.Pin = GPIO_PIN_8|GPIO_PIN_12;
+    GPIO_InitStruct.Pin = GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10|GPIO_PIN_11
+                          |GPIO_PIN_12;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
@@ -138,10 +144,31 @@ void HAL_MMC_MspInit(MMC_HandleTypeDef* hmmc)
       Error_Handler();
     }
 
-    __HAL_LINKDMA(hmmc,hdmatx,hdma_sdio_tx);
+    __HAL_LINKDMA(hsd,hdmatx,hdma_sdio_tx);
+
+    /* SDIO_RX Init */
+    hdma_sdio_rx.Instance = DMA2_Stream6;
+    hdma_sdio_rx.Init.Channel = DMA_CHANNEL_4;
+    hdma_sdio_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;
+    hdma_sdio_rx.Init.PeriphInc = DMA_PINC_DISABLE;
+    hdma_sdio_rx.Init.MemInc = DMA_MINC_ENABLE;
+    hdma_sdio_rx.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
+    hdma_sdio_rx.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
+    hdma_sdio_rx.Init.Mode = DMA_PFCTRL;
+    hdma_sdio_rx.Init.Priority = DMA_PRIORITY_LOW;
+    hdma_sdio_rx.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
+    hdma_sdio_rx.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
+    hdma_sdio_rx.Init.MemBurst = DMA_MBURST_INC4;
+    hdma_sdio_rx.Init.PeriphBurst = DMA_PBURST_INC4;
+    if (HAL_DMA_Init(&hdma_sdio_rx) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    __HAL_LINKDMA(hsd,hdmarx,hdma_sdio_rx);
 
     /* SDIO interrupt Init */
-    HAL_NVIC_SetPriority(SDIO_IRQn, 0, 0);
+    HAL_NVIC_SetPriority(SDIO_IRQn, 0, 6);
     HAL_NVIC_EnableIRQ(SDIO_IRQn);
   /* USER CODE BEGIN SDIO_MspInit 1 */
 
@@ -151,14 +178,14 @@ void HAL_MMC_MspInit(MMC_HandleTypeDef* hmmc)
 }
 
 /**
-* @brief MMC MSP De-Initialization
+* @brief SD MSP De-Initialization
 * This function freeze the hardware resources used in this example
-* @param hmmc: MMC handle pointer
+* @param hsd: SD handle pointer
 * @retval None
 */
-void HAL_MMC_MspDeInit(MMC_HandleTypeDef* hmmc)
+void HAL_SD_MspDeInit(SD_HandleTypeDef* hsd)
 {
-  if(hmmc->Instance==SDIO)
+  if(hsd->Instance==SDIO)
   {
   /* USER CODE BEGIN SDIO_MspDeInit 0 */
 
@@ -168,15 +195,20 @@ void HAL_MMC_MspDeInit(MMC_HandleTypeDef* hmmc)
 
     /**SDIO GPIO Configuration
     PC8     ------> SDIO_D0
+    PC9     ------> SDIO_D1
+    PC10     ------> SDIO_D2
+    PC11     ------> SDIO_D3
     PC12     ------> SDIO_CK
     PD2     ------> SDIO_CMD
     */
-    HAL_GPIO_DeInit(GPIOC, GPIO_PIN_8|GPIO_PIN_12);
+    HAL_GPIO_DeInit(GPIOC, GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10|GPIO_PIN_11
+                          |GPIO_PIN_12);
 
     HAL_GPIO_DeInit(GPIOD, GPIO_PIN_2);
 
     /* SDIO DMA DeInit */
-    HAL_DMA_DeInit(hmmc->hdmatx);
+    HAL_DMA_DeInit(hsd->hdmatx);
+    HAL_DMA_DeInit(hsd->hdmarx);
 
     /* SDIO interrupt DeInit */
     HAL_NVIC_DisableIRQ(SDIO_IRQn);
