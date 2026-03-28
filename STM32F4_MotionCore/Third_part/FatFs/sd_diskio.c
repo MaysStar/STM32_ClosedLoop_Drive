@@ -80,7 +80,6 @@ __ALIGN_BEGIN static uint8_t scratch[BLOCKSIZE] __ALIGN_END;
 /* Disk status */
 static volatile DSTATUS Stat = STA_NOINIT;
 
-static volatile  UINT  WriteStatus = 0, ReadStatus = 0;
 /* Private function prototypes -----------------------------------------------*/
 static DSTATUS SD_CheckStatus(BYTE lun);
 DSTATUS disk_initialize (BYTE);
@@ -92,6 +91,9 @@ DRESULT disk_write (BYTE, const BYTE*, DWORD, UINT);
 #if _USE_IOCTL == 0
 DRESULT disk_ioctl (BYTE, BYTE, void*);
 #endif  /* _USE_IOCTL == 1 */
+
+/* Task handle of current task */
+static TaskHandle_t sd_card_logging_handle = NULL;
 
 /* USER CODE BEGIN beforeFunctionSection */
 /* can be used to modify / undefine following code or add new code */
@@ -173,7 +175,7 @@ DSTATUS disk_status(BYTE lun)
 DRESULT disk_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
 {
   DRESULT res = RES_ERROR;
-  uint32_t timeout;
+  sd_card_logging_handle = xTaskGetCurrentTaskHandle();
 #if defined(ENABLE_SCRATCH_BUFFER)
   uint8_t ret;
 #endif
@@ -198,27 +200,14 @@ DRESULT disk_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
                              (uint32_t) (sector),
                              count) == MSD_OK)
     {
-      ReadStatus = 0;
       /* Wait that the reading process is completed or a timeout occurs */
-      timeout = HAL_GetTick();
-      while((ReadStatus == 0) && ((HAL_GetTick() - timeout) < SD_TIMEOUT))
-      {
-      }
-      /* in case of a timeout return error */
-      if (ReadStatus == 0)
-      {
-        res = RES_ERROR;
-      }
-      else
-      {
-        ReadStatus = 0;
-        timeout = HAL_GetTick();
+      ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(SD_TIMEOUT));
+      while(BSP_SD_GetCardState() != SD_TRANSFER_OK) vTaskDelay(pdMS_TO_TICKS(1));
 
-        while((HAL_GetTick() - timeout) < SD_TIMEOUT)
-        {
-          if (BSP_SD_GetCardState() == SD_TRANSFER_OK)
-          {
-            res = RES_OK;
+      /* Wake up */
+	  if (BSP_SD_GetCardState() == SD_TRANSFER_OK)
+	  {
+		res = RES_OK;
 #if (ENABLE_SD_DMA_CACHE_MAINTENANCE == 1)
             /*
             the SCB_InvalidateDCache_by_Addr() requires a 32-Byte aligned address,
@@ -227,9 +216,6 @@ DRESULT disk_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
             alignedAddr = (uint32_t)buff & ~0x1F;
             SCB_InvalidateDCache_by_Addr((uint32_t*)alignedAddr, count*BLOCKSIZE + ((uint32_t)buff - alignedAddr));
 #endif
-            break;
-          }
-        }
       }
     }
 #if defined(ENABLE_SCRATCH_BUFFER)
@@ -244,17 +230,9 @@ DRESULT disk_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
         if (ret == MSD_OK) {
           /* wait until the read is successful or a timeout occurs */
 
-          timeout = HAL_GetTick();
-          while((ReadStatus == 0) && ((HAL_GetTick() - timeout) < SD_TIMEOUT))
-          {
-          }
-          if (ReadStatus == 0)
-          {
-            res = RES_ERROR;
-            break;
-          }
-          ReadStatus = 0;
-
+        	/* Wake up */
+            ulTaskNotifyTake(pdTRUE, SD_TIMEOUT);
+            while(BSP_SD_GetCardState() != SD_TRANSFER_OK) vTaskDelay(pdMS_TO_TICKS(1));
 #if (ENABLE_SD_DMA_CACHE_MAINTENANCE == 1)
           /*
           *
@@ -295,13 +273,11 @@ DRESULT disk_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
 DRESULT disk_write(BYTE lun, const BYTE *buff, DWORD sector, UINT count)
 {
   DRESULT res = RES_ERROR;
-  uint32_t timeout;
+  sd_card_logging_handle = xTaskGetCurrentTaskHandle();
 #if defined(ENABLE_SCRATCH_BUFFER)
   uint8_t ret;
   int i;
 #endif
-
-   WriteStatus = 0;
 #if (ENABLE_SD_DMA_CACHE_MAINTENANCE == 1)
   uint32_t alignedAddr;
 #endif
@@ -331,29 +307,14 @@ DRESULT disk_write(BYTE lun, const BYTE *buff, DWORD sector, UINT count)
     {
       /* Wait that writing process is completed or a timeout occurs */
 
-      timeout = HAL_GetTick();
-      while((WriteStatus == 0) && ((HAL_GetTick() - timeout) < SD_TIMEOUT))
-      {
-      }
-      /* in case of a timeout return error */
-      if (WriteStatus == 0)
-      {
-        res = RES_ERROR;
-      }
-      else
-      {
-        WriteStatus = 0;
-        timeout = HAL_GetTick();
+      /* Wake up */
+      ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(SD_TIMEOUT));
+      while(BSP_SD_GetCardState() != SD_TRANSFER_OK) vTaskDelay(pdMS_TO_TICKS(1));
 
-        while((HAL_GetTick() - timeout) < SD_TIMEOUT)
-        {
-          if (BSP_SD_GetCardState() == SD_TRANSFER_OK)
-          {
-            res = RES_OK;
-            break;
-          }
-        }
-      }
+	  if (BSP_SD_GetCardState() == SD_TRANSFER_OK)
+	  {
+		res = RES_OK;
+	  }
     }
 #if defined(ENABLE_SCRATCH_BUFFER)
   }
@@ -369,23 +330,16 @@ DRESULT disk_write(BYTE lun, const BYTE *buff, DWORD sector, UINT count)
 
       for (i = 0; i < count; i++)
       {
-        WriteStatus = 0;
-
         memcpy((void *)scratch, (void *)buff, BLOCKSIZE);
         buff += BLOCKSIZE;
 
         ret = BSP_SD_WriteBlocks_DMA((uint32_t*)scratch, (uint32_t)sector++, 1);
         if (ret == MSD_OK) {
           /* wait for a message from the queue or a timeout */
-          timeout = HAL_GetTick();
-          while((WriteStatus == 0) && ((HAL_GetTick() - timeout) < SD_TIMEOUT))
-          {
-          }
-          if (WriteStatus == 0)
-          {
-            break;
-          }
 
+          /* Wake up */
+          ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(SD_TIMEOUT));
+          while(BSP_SD_GetCardState() != SD_TRANSFER_OK) vTaskDelay(pdMS_TO_TICKS(1));
         }
         else
         {
@@ -461,26 +415,6 @@ DRESULT disk_ioctl(BYTE lun, BYTE cmd, void *buff)
 /* USER CODE BEGIN callbackSection */
 /* can be used to modify / following code or add new code */
 /* USER CODE END callbackSection */
-/**
-  * @brief Tx Transfer completed callbacks
-  * @param hsd: SD handle
-  * @retval None
-  */
-void BSP_SD_WriteCpltCallback(void)
-{
-
-  WriteStatus = 1;
-}
-
-/**
-  * @brief Rx Transfer completed callbacks
-  * @param hsd: SD handle
-  * @retval None
-  */
-void BSP_SD_ReadCpltCallback(void)
-{
-  ReadStatus = 1;
-}
 /* USER CODE BEGIN ErrorAbortCallbacks */
 /*
 ==============================================================================================
@@ -494,8 +428,21 @@ void BSP_SD_AbortCallback(void)
 void BSP_SD_ErrorCallback(void)
 {
 }
-
 */
+void BSP_SD_WriteCpltCallback(void)
+{
+	BaseType_t xHigherPriorityTaskWoken;
+	vTaskNotifyGiveFromISR(sd_card_logging_handle, &xHigherPriorityTaskWoken);
+	//portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+}
+
+void BSP_SD_ReadCpltCallback(void)
+{
+	BaseType_t xHigherPriorityTaskWoken;
+	vTaskNotifyGiveFromISR(sd_card_logging_handle, &xHigherPriorityTaskWoken);
+	//portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+}
+
 /* USER CODE END ErrorAbortCallbacks */
 
 /* USER CODE BEGIN lastSection */

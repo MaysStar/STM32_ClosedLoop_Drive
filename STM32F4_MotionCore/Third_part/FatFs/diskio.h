@@ -13,6 +13,9 @@ extern "C" {
 #include "ff.h"
 #include "bsp_driver_sd.h"
 
+#include "FreeRTOS.h"
+#include "task.h"
+
 /* Status of Disk Functions */
 typedef BYTE	DSTATUS;
 
@@ -35,7 +38,6 @@ DSTATUS disk_status (BYTE pdrv);
 DRESULT disk_read (BYTE pdrv, BYTE* buff, DWORD sector, UINT count);
 DRESULT disk_write (BYTE pdrv, const BYTE* buff, DWORD sector, UINT count);
 DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff);
-
 
 /* Disk Status Bits (DSTATUS) */
 

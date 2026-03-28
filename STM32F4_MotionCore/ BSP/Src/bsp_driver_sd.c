@@ -34,13 +34,16 @@
 /* Includes ------------------------------------------------------------------*/
 #include "bsp_driver_sd.h"
 
-/* Extern variables ---------------------------------------------------------*/
+/* local static variables ---------------------------------------------------------*/
 
-extern SD_HandleTypeDef hsd;
+static SD_HandleTypeDef* local_psd;
 
-/* For DMA needs */
-volatile uint8_t WriteStatus = 0;
-volatile uint8_t ReadStatus = 0;
+/* Function to get local pointer to the sd handle */
+
+void BSP_SD_InitSetHandle(SD_HandleTypeDef* hsd)
+{
+	local_psd = hsd;
+}
 
 /* USER CODE BEGIN BeforeInitSection */
 /* can be used to modify / undefine following code or add code */
@@ -58,7 +61,7 @@ __weak uint8_t BSP_SD_Init(void)
     return MSD_ERROR;
   }
   /* HAL SD initialization */
-  sd_state = HAL_SD_Init(&hsd);
+  sd_state = HAL_SD_Init(local_psd);
 
   return sd_state;
 }
@@ -101,7 +104,7 @@ __weak uint8_t BSP_SD_ReadBlocks(uint32_t *pData, uint32_t ReadAddr, uint32_t Nu
 {
   uint8_t sd_state = MSD_OK;
 
-  if (HAL_SD_ReadBlocks(&hsd, (uint8_t *)pData, ReadAddr, NumOfBlocks, Timeout) != HAL_OK)
+  if (HAL_SD_ReadBlocks(local_psd, (uint8_t *)pData, ReadAddr, NumOfBlocks, Timeout) != HAL_OK)
   {
     sd_state = MSD_ERROR;
   }
@@ -124,7 +127,7 @@ __weak uint8_t BSP_SD_WriteBlocks(uint32_t *pData, uint32_t WriteAddr, uint32_t 
 {
   uint8_t sd_state = MSD_OK;
 
-  if (HAL_SD_WriteBlocks(&hsd, (uint8_t *)pData, WriteAddr, NumOfBlocks, Timeout) != HAL_OK)
+  if (HAL_SD_WriteBlocks(local_psd, (uint8_t *)pData, WriteAddr, NumOfBlocks, Timeout) != HAL_OK)
   {
     sd_state = MSD_ERROR;
   }
@@ -147,7 +150,7 @@ __weak uint8_t BSP_SD_ReadBlocks_DMA(uint32_t *pData, uint32_t ReadAddr, uint32_
   uint8_t sd_state = MSD_OK;
 
   /* Read block(s) in DMA transfer mode */
-  if (HAL_SD_ReadBlocks_DMA(&hsd, (uint8_t *)pData, ReadAddr, NumOfBlocks) != HAL_OK)
+  if (HAL_SD_ReadBlocks_DMA(local_psd, (uint8_t *)pData, ReadAddr, NumOfBlocks) != HAL_OK)
   {
     sd_state = MSD_ERROR;
   }
@@ -170,7 +173,7 @@ __weak uint8_t BSP_SD_WriteBlocks_DMA(uint32_t *pData, uint32_t WriteAddr, uint3
   uint8_t sd_state = MSD_OK;
 
   /* Write block(s) in DMA transfer mode */
-  if (HAL_SD_WriteBlocks_DMA(&hsd, (uint8_t *)pData, WriteAddr, NumOfBlocks) != HAL_OK)
+  if (HAL_SD_WriteBlocks_DMA(local_psd, (uint8_t *)pData, WriteAddr, NumOfBlocks) != HAL_OK)
   {
     sd_state = MSD_ERROR;
   }
@@ -191,7 +194,7 @@ __weak uint8_t BSP_SD_Erase(uint32_t StartAddr, uint32_t EndAddr)
 {
   uint8_t sd_state = MSD_OK;
 
-  if (HAL_SD_Erase(&hsd, StartAddr, EndAddr) != HAL_OK)
+  if (HAL_SD_Erase(local_psd, StartAddr, EndAddr) != HAL_OK)
   {
     sd_state = MSD_ERROR;
   }
@@ -209,7 +212,7 @@ __weak uint8_t BSP_SD_Erase(uint32_t StartAddr, uint32_t EndAddr)
   */
 __weak uint8_t BSP_SD_GetCardState(void)
 {
-  return ((HAL_SD_GetCardState(&hsd) == HAL_SD_CARD_TRANSFER ) ? SD_TRANSFER_OK : SD_TRANSFER_BUSY);
+  return ((HAL_SD_GetCardState(local_psd) == HAL_SD_CARD_TRANSFER ) ? SD_TRANSFER_OK : SD_TRANSFER_BUSY);
 }
 
 /**
@@ -220,7 +223,7 @@ __weak uint8_t BSP_SD_GetCardState(void)
 __weak void BSP_SD_GetCardInfo(HAL_SD_CardInfoTypeDef *CardInfo)
 {
   /* Get SD card Information */
-  HAL_SD_GetCardInfo(&hsd, CardInfo);
+  HAL_SD_GetCardInfo(local_psd, CardInfo);
 }
 
 /* USER CODE BEGIN BeforeCallBacksSection */
@@ -274,7 +277,7 @@ __weak void BSP_SD_AbortCallback(void)
   */
 __weak void BSP_SD_WriteCpltCallback(void)
 {
-	WriteStatus = 1;
+
 }
 
 /**
@@ -284,7 +287,7 @@ __weak void BSP_SD_WriteCpltCallback(void)
   */
 __weak void BSP_SD_ReadCpltCallback(void)
 {
-	ReadStatus = 1;
+
 }
 /* USER CODE END CallBacksSection_C */
 #endif

@@ -65,6 +65,7 @@
 #else
 /* USER CODE BEGIN BSP_H_CODE */
 /* Exported functions --------------------------------------------------------*/
+void BSP_SD_InitSetHandle(SD_HandleTypeDef* hsd);
 uint8_t BSP_SD_Init(void);
 uint8_t BSP_SD_ITConfig(void);
 void    BSP_SD_DetectIT(void);
