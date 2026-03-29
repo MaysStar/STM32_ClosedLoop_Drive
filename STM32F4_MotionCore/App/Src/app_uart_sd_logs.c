@@ -26,12 +26,7 @@ static QueueHandle_t q_uart_sd_logging = NULL;
 static TaskHandle_t uart_sd_logging_handle = NULL;
 static void uart_sd_logging_task(void* pvParameters);
 
-/* Registered function for UART2 callback */
-static void UART2TxCpltCallbak(void)
-{
-	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-	vTaskNotifyGiveFromISR(uart_sd_logging_handle, &xHigherPriorityTaskWoken);
-}
+
 
 DWORD get_fattime(void) {
     return  ((DWORD)(2022 - 1980) << 25) |
@@ -65,8 +60,7 @@ void APP_LOGS_Init(SD_HandleTypeDef* phsd, UART_HandleTypeDef* phuart1, UART_Han
 	BSP_SD_InitSetHandle(phsd);
 	BSP_UART_Init(phuart1, phuart2, phuart3);
 
-	BSP_UART2_RegisterTxCpltCallbak(UART2TxCpltCallbak);
-
+	/* Configure freeRTOS structures */
 	q_uart_sd_logging = xQueueCreate(SD_CARD_QUEUE_SIZE, sizeof(char) * SD_CARD_QUEUE_DATA_LEN);
 	configASSERT(q_uart_sd_logging != NULL);
 
@@ -207,46 +201,53 @@ void APP_LOGS_SetData(char* data, uint32_t len)
 /* Main task for SD card and UART logging */
 static void uart_sd_logging_task(void* pvParameters)
 {
-	SDRESULT res = APP_SD_Mount();
-	if(res == FR_OK)
+
+	/* SD configuration before use */
 	{
-		/* Create new work directory */
-		res = f_mkdir(SD_WORK_DIR_PATH);
+		SDRESULT res = APP_SD_Mount();
 		if(res == FR_OK)
 		{
-			APP_LOG_INFO("make dir was successful, code: %d", res);
+			/* Create new work directory */
+			res = f_mkdir(SD_WORK_DIR_PATH);
+			if(res == FR_OK)
+			{
+				APP_LOG_INFO("make dir was successful, code: %d", res);
+			}
+			else APP_LOG_ERROR("make dir was unsuccessful, code: %d", res);
 		}
-		else APP_LOG_ERROR("make dir was unsuccessful, code: %d", res);
-	}
 
-	/* Open file */
-	APP_SD_Open();
+		/* Open file */
+		APP_SD_Open();
+	}
 
 	char sd_card_buffer[SD_CARD_QUEUE_DATA_LEN];
 	while(1)
 	{
 		xQueueReceive(q_uart_sd_logging, sd_card_buffer, portMAX_DELAY);
 
-		BSP_UART3_SendData(sd_card_buffer, strlen(sd_card_buffer));
-
-		/* Wait for UART DMA Tx complete */
-		ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(200));
-		APP_LOG_INFO("UART transmit data");
-
-		if(BSP_SD_IsDetected() == SD_PRESENT)
+		/* UART management */
 		{
-			if(is_sd_card_present == SD_CARD_NOT_PRESENT)
-			{
-				is_sd_card_present = SD_CARD_PRESENT;
-				/* Open file */
-				APP_SD_Open();
-			}
-			APP_SD_Send_Logs(sd_card_buffer, strlen(sd_card_buffer));
+			OSAL_UART3_SendData(sd_card_buffer, strlen(sd_card_buffer));
+			APP_LOG_INFO("UART transmit data");
 		}
-		else
+
+		/* SDIO management */
 		{
-			is_sd_card_present = SD_CARD_NOT_PRESENT;
-			//APP_LOG_ERROR("SD_CARD_NOT_PRESENT");
+			if(BSP_SD_IsDetected() == SD_PRESENT)
+			{
+				if(is_sd_card_present == SD_CARD_NOT_PRESENT)
+				{
+					is_sd_card_present = SD_CARD_PRESENT;
+					/* Open file */
+					APP_SD_Open();
+				}
+				APP_SD_Send_Logs(sd_card_buffer, strlen(sd_card_buffer));
+			}
+			else
+			{
+				is_sd_card_present = SD_CARD_NOT_PRESENT;
+				//APP_LOG_ERROR("SD_CARD_NOT_PRESENT");
+			}
 		}
 	}
 }

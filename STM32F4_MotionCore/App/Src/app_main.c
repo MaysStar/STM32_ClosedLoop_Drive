@@ -13,7 +13,12 @@ void APP_Main(AppHardwareConfig_t* app_hw)
 	//SEGGER_SYSVIEW_Conf();
 	//SEGGER_SYSVIEW_Start();
 	/* APP_SD initialization */
+
+	/* First set all task to initialize all BSP */
 	APP_LOGS_Init(app_hw->phsd, app_hw->phuart1, app_hw->phuart2, app_hw->phuart3);
+
+	/* Second initialize all setting in OSAL */
+	OSAL_Init();
 
 	xTaskCreate(blink_blue_led_task, "blink_blue_led_task", 512, "blink_blue_led_task", 4, &blink_blue_led_handle);
 	configASSERT(blink_blue_led_handle != NULL);
@@ -47,17 +52,6 @@ void test_log_task(void* pvParameters)
 			vTaskDelay(pdMS_TO_TICKS(10));
 		}
 	}
-}
-
-void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
-{
-    /* pcTaskName crash all stack */
-
-    // Set permanent wait
-    while (1)
-    {
-
-    }
 }
 
 
