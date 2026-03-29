@@ -9,9 +9,10 @@ void test_log_task(void* pvParameters);
 /* Main function for all application which process all logic and united all levels from BSP to third_part */
 void APP_Main(AppHardwareConfig_t* app_hw)
 {
+	/* Call SEGGER API before any freeRTOS API */
 	//SEGGER_UART_init(500000);
-	//SEGGER_SYSVIEW_Conf();
-	//SEGGER_SYSVIEW_Start();
+	SEGGER_SYSVIEW_Conf();
+	SEGGER_SYSVIEW_Start();
 	/* APP_SD initialization */
 
 	/* First set all task to initialize all BSP */
