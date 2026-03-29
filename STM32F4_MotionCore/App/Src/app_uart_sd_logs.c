@@ -16,8 +16,8 @@ static uint8_t is_sd_card_present = SD_CARD_PRESENT;
 
 /* private function for work with sd card */
 static SDRESULT APP_SD_Open(void);
-static SDRESULT APP_SD_Write(const char* filename, const char* text, uint32_t len);
-static SDRESULT APP_SD_Read(const char* filename, uint32_t len);
+//static SDRESULT APP_SD_Write(const char* filename, const char* text, uint32_t len);
+//static SDRESULT APP_SD_Read(const char* filename, uint32_t len);
 static SDRESULT APP_SD_Append(const char* filename, const char* text, uint32_t len);
 static void APP_SD_Send_Logs(char* text, uint32_t len);
 
@@ -59,11 +59,11 @@ static SDRESULT APP_SD_Mount(void)
 }
 
 /* Function for initialization SD and prepare to logs UART */
-void APP_LOGS_Init(SD_HandleTypeDef* phsd, UART_HandleTypeDef* phuart1, UART_HandleTypeDef* phuart2)
+void APP_LOGS_Init(SD_HandleTypeDef* phsd, UART_HandleTypeDef* phuart1, UART_HandleTypeDef* phuart2, UART_HandleTypeDef* phuart3)
 {
 	/* Set all peripheral handles in BSP */
 	BSP_SD_InitSetHandle(phsd);
-	BSP_UART_Init(phuart1, phuart2);
+	BSP_UART_Init(phuart1, phuart2, phuart3);
 
 	BSP_UART2_RegisterTxCpltCallbak(UART2TxCpltCallbak);
 
@@ -93,25 +93,25 @@ static SDRESULT APP_SD_Open(void)
 	return res;
 }
 
-/* Write data into SD card but previous data will be deleted */
-static SDRESULT APP_SD_Write(const char* filename, const char* text, uint32_t len)
+/* Write data into SD card but previous data will be deleted
+//static SDRESULT APP_SD_Write(const char* filename, const char* text, uint32_t len)
 {
 	SDRESULT res = APP_SD_Mount();
 
 	if(res == FR_OK)
 	{
-		/* Open file in work directory */
+		// Open file in work directory
 		TCHAR SD_WORK_FILE_PATH[128];
 		snprintf(SD_WORK_FILE_PATH, sizeof(SD_WORK_FILE_PATH), "%s/%s", SD_WORK_DIR_PATH, filename);
 
-		/* if file doesn't exist it will be created and data just be overwritten because of the flag FA_OPEN_ALWAYS */
+		// if file doesn't exist it will be created and data just be overwritten because of the flag FA_OPEN_ALWAYS
 		res = f_open(&WORK_FILE, SD_WORK_FILE_PATH, FA_WRITE | FA_OPEN_ALWAYS );
 
 		if(res == FR_OK)
 		{
 			APP_LOG_INFO("file opening was successful, code: %d", res);
 
-			/* Write into file */
+			// Write into file
 			UINT writen_bytes;
 			res = f_write(&WORK_FILE, text, len, &writen_bytes);
 
@@ -129,12 +129,14 @@ static SDRESULT APP_SD_Write(const char* filename, const char* text, uint32_t le
 	return res;
 }
 
-/* Write data from SD card */
+// Write data from SD card
 static SDRESULT APP_SD_Read(const char* filename, uint32_t len)
 {
-	/* if you need this function you can write it yourself */
+	//if you need this function you can write it yourself
 	return 0;
 }
+
+*/
 
 /* Append data to SD card and previous data won't be deleted */
 static SDRESULT APP_SD_Append(const char* filename, const char* text, uint32_t len)
@@ -225,7 +227,11 @@ static void uart_sd_logging_task(void* pvParameters)
 	{
 		xQueueReceive(q_uart_sd_logging, sd_card_buffer, portMAX_DELAY);
 
-		BSP_UART2_SendData(sd_card_buffer, strlen(sd_card_buffer));
+		BSP_UART3_SendData(sd_card_buffer, strlen(sd_card_buffer));
+
+		/* Wait for UART DMA Tx complete */
+		ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(200));
+		APP_LOG_INFO("UART transmit data");
 
 		if(BSP_SD_IsDetected() == SD_PRESENT)
 		{
@@ -240,10 +246,7 @@ static void uart_sd_logging_task(void* pvParameters)
 		else
 		{
 			is_sd_card_present = SD_CARD_NOT_PRESENT;
-			APP_LOG_ERROR("SD_CARD_NOT_PRESENT");
+			//APP_LOG_ERROR("SD_CARD_NOT_PRESENT");
 		}
-
-		ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(200));
-		APP_LOG_INFO("UART transmit data");
 	}
 }

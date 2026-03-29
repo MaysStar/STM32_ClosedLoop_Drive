@@ -15,6 +15,7 @@ extern "C" {
 
 #include "FreeRTOS.h"
 #include "task.h"
+#include "semphr.h"
 
 /* Status of Disk Functions */
 typedef BYTE	DSTATUS;

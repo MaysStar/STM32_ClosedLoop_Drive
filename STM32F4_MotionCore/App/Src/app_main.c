@@ -9,8 +9,11 @@ void test_log_task(void* pvParameters);
 /* Main function for all application which process all logic and united all levels from BSP to third_part */
 void APP_Main(AppHardwareConfig_t* app_hw)
 {
+	//SEGGER_UART_init(500000);
+	//SEGGER_SYSVIEW_Conf();
+	//SEGGER_SYSVIEW_Start();
 	/* APP_SD initialization */
-	APP_LOGS_Init(app_hw->phsd, app_hw->phuart1, app_hw->phuart2);
+	APP_LOGS_Init(app_hw->phsd, app_hw->phuart1, app_hw->phuart2, app_hw->phuart3);
 
 	xTaskCreate(blink_blue_led_task, "blink_blue_led_task", 512, "blink_blue_led_task", 4, &blink_blue_led_handle);
 	configASSERT(blink_blue_led_handle != NULL);

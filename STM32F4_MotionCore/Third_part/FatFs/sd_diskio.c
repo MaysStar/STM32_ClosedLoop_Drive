@@ -95,6 +95,9 @@ DRESULT disk_ioctl (BYTE, BYTE, void*);
 /* Task handle of current task */
 static TaskHandle_t sd_card_logging_handle = NULL;
 
+/* Mutex for SDIO */
+static SemaphoreHandle_t m_SDIO = NULL;
+
 /* USER CODE BEGIN beforeFunctionSection */
 /* can be used to modify / undefine following code or add new code */
 /* USER CODE END beforeFunctionSection */
@@ -107,10 +110,13 @@ static int SD_CheckStatusWithTimeout(uint32_t timeout)
   /* block until SDIO IP is ready again or a timeout occur */
   while(HAL_GetTick() - timer < timeout)
   {
+	xSemaphoreTake(m_SDIO, portMAX_DELAY);
     if (BSP_SD_GetCardState() == SD_TRANSFER_OK)
     {
+      xSemaphoreGive(m_SDIO);
       return 0;
     }
+    xSemaphoreGive(m_SDIO);
   }
 
   return -1;
@@ -120,12 +126,33 @@ static DSTATUS SD_CheckStatus(BYTE lun)
 {
   Stat = STA_NOINIT;
 
+  xSemaphoreTake(m_SDIO, portMAX_DELAY);
   if(BSP_SD_GetCardState() == MSD_OK)
   {
     Stat &= ~STA_NOINIT;
   }
+  xSemaphoreGive(m_SDIO);
 
   return Stat;
+}
+
+static void SD_WaitCard(void)
+{
+	ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(SD_TIMEOUT));
+
+	while(1)
+	{
+	  xSemaphoreTake(m_SDIO, portMAX_DELAY);
+	  uint8_t state = BSP_SD_GetCardState();
+	  xSemaphoreGive(m_SDIO);
+
+	  if(state == SD_TRANSFER_OK)
+	  {
+		  break;
+	  }
+
+	  vTaskDelay(pdMS_TO_TICKS(1));
+	}
 }
 
 /**
@@ -135,8 +162,12 @@ static DSTATUS SD_CheckStatus(BYTE lun)
   */
 DSTATUS disk_initialize(BYTE lun)
 {
-
 #if !defined(DISABLE_SD_INIT)
+
+  if(m_SDIO == NULL)
+  {
+	m_SDIO = xSemaphoreCreateMutex();
+  }
 
   if(BSP_SD_Init() == MSD_OK)
   {
@@ -196,15 +227,18 @@ DRESULT disk_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
   if (!((uint32_t)buff & 0x3))
   {
 #endif
+	xSemaphoreTake(m_SDIO, portMAX_DELAY);
     if(BSP_SD_ReadBlocks_DMA((uint32_t*)buff,
                              (uint32_t) (sector),
                              count) == MSD_OK)
     {
+    xSemaphoreGive(m_SDIO);
+
       /* Wait that the reading process is completed or a timeout occurs */
-      ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(SD_TIMEOUT));
-      while(BSP_SD_GetCardState() != SD_TRANSFER_OK) vTaskDelay(pdMS_TO_TICKS(1));
+      SD_WaitCard();
 
       /* Wake up */
+      xSemaphoreTake(m_SDIO, portMAX_DELAY);
 	  if (BSP_SD_GetCardState() == SD_TRANSFER_OK)
 	  {
 		res = RES_OK;
@@ -217,6 +251,7 @@ DRESULT disk_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
             SCB_InvalidateDCache_by_Addr((uint32_t*)alignedAddr, count*BLOCKSIZE + ((uint32_t)buff - alignedAddr));
 #endif
       }
+	  xSemaphoreGive(m_SDIO);
     }
 #if defined(ENABLE_SCRATCH_BUFFER)
   }
@@ -226,13 +261,15 @@ DRESULT disk_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
       int i;
 
       for (i = 0; i < count; i++) {
+    	xSemaphoreTake(m_SDIO, portMAX_DELAY);
         ret = BSP_SD_ReadBlocks_DMA((uint32_t*)scratch, (uint32_t)sector++, 1);
+        xSemaphoreGive(m_SDIO);
+
         if (ret == MSD_OK) {
           /* wait until the read is successful or a timeout occurs */
 
-        	/* Wake up */
-            ulTaskNotifyTake(pdTRUE, SD_TIMEOUT);
-            while(BSP_SD_GetCardState() != SD_TRANSFER_OK) vTaskDelay(pdMS_TO_TICKS(1));
+		  /* Wake up */
+		  SD_WaitCard();
 #if (ENABLE_SD_DMA_CACHE_MAINTENANCE == 1)
           /*
           *
@@ -301,20 +338,23 @@ DRESULT disk_write(BYTE lun, const BYTE *buff, DWORD sector, UINT count)
     SCB_CleanDCache_by_Addr((uint32_t*)alignedAddr, count*BLOCKSIZE + ((uint32_t)buff - alignedAddr));
 #endif
 
+    xSemaphoreTake(m_SDIO, portMAX_DELAY);
     if(BSP_SD_WriteBlocks_DMA((uint32_t*)buff,
                               (uint32_t)(sector),
                               count) == MSD_OK)
     {
+    xSemaphoreGive(m_SDIO);
       /* Wait that writing process is completed or a timeout occurs */
 
       /* Wake up */
-      ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(SD_TIMEOUT));
-      while(BSP_SD_GetCardState() != SD_TRANSFER_OK) vTaskDelay(pdMS_TO_TICKS(1));
+      SD_WaitCard();
 
+      xSemaphoreTake(m_SDIO, portMAX_DELAY);
 	  if (BSP_SD_GetCardState() == SD_TRANSFER_OK)
 	  {
 		res = RES_OK;
 	  }
+	  xSemaphoreGive(m_SDIO);
     }
 #if defined(ENABLE_SCRATCH_BUFFER)
   }
@@ -333,13 +373,15 @@ DRESULT disk_write(BYTE lun, const BYTE *buff, DWORD sector, UINT count)
         memcpy((void *)scratch, (void *)buff, BLOCKSIZE);
         buff += BLOCKSIZE;
 
+        xSemaphoreTake(m_SDIO, portMAX_DELAY);
         ret = BSP_SD_WriteBlocks_DMA((uint32_t*)scratch, (uint32_t)sector++, 1);
+        xSemaphoreGive(m_SDIO);
+
         if (ret == MSD_OK) {
           /* wait for a message from the queue or a timeout */
 
           /* Wake up */
-          ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(SD_TIMEOUT));
-          while(BSP_SD_GetCardState() != SD_TRANSFER_OK) vTaskDelay(pdMS_TO_TICKS(1));
+          SD_WaitCard();
         }
         else
         {
@@ -380,22 +422,32 @@ DRESULT disk_ioctl(BYTE lun, BYTE cmd, void *buff)
     break;
 
   /* Get number of sectors on the disk (DWORD) */
+
   case GET_SECTOR_COUNT :
+	xSemaphoreTake(m_SDIO, portMAX_DELAY);
     BSP_SD_GetCardInfo(&CardInfo);
+    xSemaphoreGive(m_SDIO);
+
     *(DWORD*)buff = CardInfo.LogBlockNbr;
     res = RES_OK;
     break;
 
   /* Get R/W sector size (WORD) */
   case GET_SECTOR_SIZE :
+	xSemaphoreTake(m_SDIO, portMAX_DELAY);
     BSP_SD_GetCardInfo(&CardInfo);
+    xSemaphoreGive(m_SDIO);
+
     *(WORD*)buff = CardInfo.LogBlockSize;
     res = RES_OK;
     break;
 
   /* Get erase block size in unit of sector (DWORD) */
   case GET_BLOCK_SIZE :
+	xSemaphoreTake(m_SDIO, portMAX_DELAY);
     BSP_SD_GetCardInfo(&CardInfo);
+    xSemaphoreGive(m_SDIO);
+
     *(DWORD*)buff = CardInfo.LogBlockSize / SD_DEFAULT_BLOCK_SIZE;
     res = RES_OK;
     break;
@@ -431,14 +483,14 @@ void BSP_SD_ErrorCallback(void)
 */
 void BSP_SD_WriteCpltCallback(void)
 {
-	BaseType_t xHigherPriorityTaskWoken;
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 	vTaskNotifyGiveFromISR(sd_card_logging_handle, &xHigherPriorityTaskWoken);
 	//portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 
 void BSP_SD_ReadCpltCallback(void)
 {
-	BaseType_t xHigherPriorityTaskWoken;
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 	vTaskNotifyGiveFromISR(sd_card_logging_handle, &xHigherPriorityTaskWoken);
 	//portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }

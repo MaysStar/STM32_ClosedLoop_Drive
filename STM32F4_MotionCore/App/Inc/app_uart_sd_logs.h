@@ -5,10 +5,8 @@
 #include "stm32f4xx_hal.h"
 
 #include <app_config.h>
+#include <bsp_driver_uart.h>
 #include "bsp_driver_sd.h"
-#include "bsp_deiver_uart.h"
-
-/* application level include */
 #include "ff.h"
 
 #include "FreeRTOS.h"
@@ -28,7 +26,7 @@
 
 typedef FRESULT SDRESULT;
 
-void APP_LOGS_Init(SD_HandleTypeDef* phsd, UART_HandleTypeDef* phuart1, UART_HandleTypeDef* phuart2);
+void APP_LOGS_Init(SD_HandleTypeDef* phsd, UART_HandleTypeDef* phuart1, UART_HandleTypeDef* phuart2, UART_HandleTypeDef* phuart3);
 void APP_LOGS_SetData(char* data, uint32_t len);
 
 #endif // APP_UART_SD_LOGS_H
