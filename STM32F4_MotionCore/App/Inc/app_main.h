@@ -2,6 +2,7 @@
 #define APP_MAIN_H_
 
 /* OSAL level include */
+#include "osal_freertos.h"
 
 /* APP level include*/
 #include <app_config.h>
@@ -11,6 +12,8 @@
 #include "FreeRTOS.h"
 #include "FreeRTOSConfig.h"
 #include "task.h"
+
+#include "SEGGER_SYSVIEW.h"
 
 /* else include*/
 #include <stdio.h>

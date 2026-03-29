@@ -3,10 +3,16 @@
   <section name="org.eclipse.cdt.internal.ui.wizards.settingswizards.IncludePaths">
     <language id="org.eclipse.cdt.core.assembly" name="s,S">
       <includepath workspace_path="true">/${ProjName}/Third_part/freeRTOS/Source/portable/MemMang</includepath>
+      <includepath workspace_path="true">/${ProjName}/Third_part/SEGGER/SEGGER/Syscalls</includepath>
       <includepath workspace_path="true">/${ProjName}/Third_part/freeRTOS/Source/portable/GCC/ARM_CM4F</includepath>
     </language>
     <language id="org.eclipse.cdt.core.gcc" name="C Source File">
       <includepath>Core/Inc</includepath>
+      <includepath workspace_path="true">/${ProjName}/Third_part/SEGGER/SEGGER/Syscalls</includepath>
+      <includepath workspace_path="true">/${ProjName}/Third_part/SEGGER/SEGGER</includepath>
+      <includepath workspace_path="true">/${ProjName}/Third_part/SEGGER/Config</includepath>
+      <includepath workspace_path="true">/${ProjName}/Third_part/SEGGER/FreeRTOSV10</includepath>
+      <includepath workspace_path="true">/${ProjName}/OSAL/Inc</includepath>
       <includepath workspace_path="true">/${ProjName}/Third_part/freeRTOS/Source/portable/GCC/ARM_CM4F</includepath>
       <includepath workspace_path="true">/${ProjName}/Third_part/freeRTOS/Source/include</includepath>
       <includepath workspace_path="true">/${ProjName}/Third_part/freeRTOS/Source</includepath>

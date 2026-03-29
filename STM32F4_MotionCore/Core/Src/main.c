@@ -73,6 +73,9 @@ static void MX_USART3_UART_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+/* DWT to control DWT cycle buffer, which need for SEGGER  */
+#define DWT_CTRL (*(volatile uint32_t*)0xE0001000)
+
 /* USER CODE END 0 */
 
 /**
@@ -92,6 +95,9 @@ int main(void)
 
   /* USER CODE BEGIN Init */
 
+  /* Set for SEGGER proper work */
+  NVIC_SetPriorityGrouping(0);
+
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -109,6 +115,9 @@ int main(void)
   MX_USART2_UART_Init();
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
+
+  /* Set one to enable DWT cycle buffer which is necessary for SEGGER */
+  DWT_CTRL |= (1 << 0);
 
   HAL_Delay(500);
 
