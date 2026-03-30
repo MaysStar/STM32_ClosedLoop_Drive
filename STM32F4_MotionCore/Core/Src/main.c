@@ -116,7 +116,7 @@ int main(void)
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
 
-  /* Set one to enable DWT cycle count, which is necessary for SEGGER */
+  /* Set one to enable DWT cycle buffer which is necessary for SEGGER */
   DWT_CTRL |= (1 << 0);
 
   HAL_Delay(500);
