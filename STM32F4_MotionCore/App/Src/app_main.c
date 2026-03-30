@@ -10,7 +10,6 @@ void test_log_task(void* pvParameters);
 void APP_Main(AppHardwareConfig_t* app_hw)
 {
 	/* Call SEGGER API before any freeRTOS API */
-	//SEGGER_UART_init(500000);
 	SEGGER_SYSVIEW_Conf();
 	SEGGER_SYSVIEW_Start();
 	/* APP_SD initialization */

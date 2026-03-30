@@ -5,14 +5,12 @@ typedef void (*UART_TxRxCpltCallbak)(void);
 
 static UART_TxRxCpltCallbak UART3TxCpltCallbak;
 
-static UART_HandleTypeDef* local_ptask_uart1 = NULL;
 static UART_HandleTypeDef* local_ptask_uart2 = NULL;
 static UART_HandleTypeDef* local_ptask_uart3 = NULL;
 
 /* SET local pointer into the peripherals */
-void BSP_UART_Init(UART_HandleTypeDef* huart1, UART_HandleTypeDef* huart2, UART_HandleTypeDef* huart3)
+void BSP_UART_Init(UART_HandleTypeDef* huart2, UART_HandleTypeDef* huart3)
 {
-	local_ptask_uart1 = huart1;
 	local_ptask_uart2 = huart2;
 	local_ptask_uart3 = huart3;
 }
