@@ -9,7 +9,9 @@
 #include "task.h"
 #include "semphr.h"
 
-void OSAL_UART3_SendData(char* tx_buffer, uint32_t len);
 void OSAL_Init(void);
+
+void OSAL_UART3_SendData(char* tx_buffer, uint32_t len);
+float OSAL_UART1_GetTemperature(void);
 
 #endif /* OSAL_FREERTOS_H_ */

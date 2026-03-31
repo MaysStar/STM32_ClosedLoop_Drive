@@ -58,7 +58,8 @@ void APP_LOGS_Init(SD_HandleTypeDef* phsd, UART_HandleTypeDef* phuart1, UART_Han
 {
 	/* Set all peripheral handles in BSP */
 	BSP_SD_InitSetHandle(phsd);
-	BSP_UART_Init(phuart1, phuart2, phuart3);
+	BSP_UART_Init(phuart2, phuart3);
+	BSP_UART1_1WireDS18B20_Init(phuart1);
 
 	/* Configure freeRTOS structures */
 	q_uart_sd_logging = xQueueCreate(SD_CARD_QUEUE_SIZE, sizeof(char) * SD_CARD_QUEUE_DATA_LEN);

@@ -41,17 +41,22 @@ void blink_blue_led_task(void* pvParameters)
 
 void test_log_task(void* pvParameters)
 {
-	static char test_log_buffer[] = "HELLO MY NAME IS ROSTYSLAV AND THIS SHOW HOW MY CODE WORK\n";
+	static char test_log_buffer[64];
+	static float temp;
+	static int temp_int;
+	static int temp_frac;
 
-	vTaskDelay(pdMS_TO_TICKS(100));
 	while(1)
 	{
-		for(uint32_t i = 0; i < 512; ++i)
-		{
+		temp = OSAL_UART1_GetTemperature();
 
-			APP_LOGS_SetData(test_log_buffer, strlen(test_log_buffer));
-			vTaskDelay(pdMS_TO_TICKS(10));
-		}
+		/* Imitate float with whole and fractal parts */
+		temp_int = (int)temp;
+		temp_frac = (int)((temp - (float)temp_int) * 100);\
+
+		snprintf(test_log_buffer, 64, "temperature: %d.%02d\n", temp_int, temp_frac);
+
+		APP_LOGS_SetData(test_log_buffer, strlen(test_log_buffer));
 	}
 }
 
