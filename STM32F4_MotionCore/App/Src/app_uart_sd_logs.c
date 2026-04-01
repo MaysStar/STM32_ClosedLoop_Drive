@@ -21,15 +21,14 @@ static SDRESULT APP_SD_Open(void);
 static SDRESULT APP_SD_Append(const char* filename, const char* text, uint32_t len);
 static void APP_SD_Send_Logs(char* text, uint32_t len);
 
-/* private task handle, task and queue */
-static QueueHandle_t q_uart_sd_logging = NULL;
+/* private task handle and task */
 static TaskHandle_t uart_sd_logging_handle = NULL;
 static void uart_sd_logging_task(void* pvParameters);
 
 
 
 DWORD get_fattime(void) {
-    return  ((DWORD)(2022 - 1980) << 25) |
+    return  ((DWORD)(2026 - 1980) << 25) |
             ((DWORD)1 << 21) |
             ((DWORD)1 << 16) |
             ((DWORD)0 << 11) |
@@ -44,28 +43,18 @@ static SDRESULT APP_SD_Mount(void);
 static SDRESULT APP_SD_Mount(void)
 {
 	SDRESULT res = f_mount(&SDFatFs, SD_MOUNT_PATH, SD_MOUNT_OPT);
-	if(res == FR_OK)
-	{
-		APP_LOG_INFO("sd mount was successful, code: %d", res);
-	}
-	else APP_LOG_ERROR("sd mount was unsuccessful, code: %d", res);
-
 	return res;
 }
 
 /* Function for initialization SD and prepare to logs UART */
-void APP_LOGS_Init(SD_HandleTypeDef* phsd, UART_HandleTypeDef* phuart1, UART_HandleTypeDef* phuart2, UART_HandleTypeDef* phuart3)
+void APP_LOGS_Init(SD_HandleTypeDef* phsd, UART_HandleTypeDef* phuart2, UART_HandleTypeDef* phuart3)
 {
 	/* Set all peripheral handles in BSP */
 	BSP_SD_InitSetHandle(phsd);
 	BSP_UART_Init(phuart2, phuart3);
-	BSP_UART1_1WireDS18B20_Init(phuart1);
 
 	/* Configure freeRTOS structures */
-	q_uart_sd_logging = xQueueCreate(SD_CARD_QUEUE_SIZE, sizeof(char) * SD_CARD_QUEUE_DATA_LEN);
-	configASSERT(q_uart_sd_logging != NULL);
-
-	xTaskCreate(uart_sd_logging_task, "uart_sd_logging_task", 2048, NULL, 4, &uart_sd_logging_handle);
+	xTaskCreate(uart_sd_logging_task, "uart_sd_logging_task", 2048, NULL, 1, &uart_sd_logging_handle);
 	configASSERT(uart_sd_logging_handle != NULL);
 }
 
@@ -78,13 +67,6 @@ static SDRESULT APP_SD_Open(void)
 
 	/* if file doesn't exist it will be created and data will be appended to current data in that file because of the flag FA_OPEN_APPEND */
 	SDRESULT res = f_open(&WORK_FILE, SD_WORK_FILE_PATH, FA_WRITE | FA_OPEN_APPEND);
-
-	if(res == FR_OK)
-	{
-		APP_LOG_INFO("file opening was successful, code: %d", res);
-	}
-	else APP_LOG_ERROR("file opening was unsuccessful, code: %d", res);
-
 	return res;
 }
 
@@ -140,15 +122,7 @@ static SDRESULT APP_SD_Append(const char* filename, const char* text, uint32_t l
 	/* Append into file */
 	UINT writen_bytes;
 	res = f_write(&WORK_FILE, text, len, &writen_bytes);
-
-	if(res == FR_OK)
-	{
-		APP_LOG_INFO("file appending was successful, code: %d", res);
-		APP_LOG_INFO("number of bytes was written: %d", writen_bytes);
-	}
-	else APP_LOG_ERROR("file appending was unsuccessful, code: %d", res);
-
-	f_sync(&WORK_FILE);
+	res = f_sync(&WORK_FILE);
 
 	return res;
 }
@@ -167,35 +141,11 @@ void APP_SD_Send_Logs(char* text, uint32_t len)
 		}
 
 		/* Send data from 512 - 1023 and make buffer cycle */
-		else if(logs_buffer_idx == (SD_CARD_BUFFER_MAX_LEN * 2))
+		else if(logs_buffer_idx <= (SD_CARD_BUFFER_MAX_LEN * 2))
 		{
 			APP_SD_Append(SD_MOTOR_LOGS_WORK_FILE_PATH, &logs_buffer[512], SD_CARD_BUFFER_MAX_LEN);
 			logs_buffer_idx = 0;
 		}
-	}
-}
-
-/* Function to set data from other tasks to local Queue and process it */
-void APP_LOGS_SetData(char* data, uint32_t len)
-{
-	char temp_buffer[SD_CARD_QUEUE_DATA_LEN];
-	while(len >= SD_CARD_QUEUE_DATA_LEN)
-	{
-		/* in the end will be "\0" so SD_CARD_QUEUE_DATA_LEN - 1 length */
-		snprintf(temp_buffer, SD_CARD_QUEUE_DATA_LEN, "%.*s", (int)(SD_CARD_QUEUE_DATA_LEN - 1), data);
-
-		/* Send cope of the temp buffer */
-		xQueueSend(q_uart_sd_logging, temp_buffer, pdMS_TO_TICKS(50));
-
-		/* increase and decrease buffer and length */
-		data += (SD_CARD_QUEUE_DATA_LEN - 1);
-		len -= (SD_CARD_QUEUE_DATA_LEN - 1);
-	}
-	if(len > 0)
-	{
-		/* Send last buffer of data which less than or equal SD_CARD_QUEUE_DATA_LEN */
-		snprintf(temp_buffer, SD_CARD_QUEUE_DATA_LEN, "%.*s", (int)len , data);
-		xQueueSend(q_uart_sd_logging, temp_buffer, pdMS_TO_TICKS(50));
 	}
 }
 
@@ -210,26 +160,31 @@ static void uart_sd_logging_task(void* pvParameters)
 		{
 			/* Create new work directory */
 			res = f_mkdir(SD_WORK_DIR_PATH);
-			if(res == FR_OK)
-			{
-				APP_LOG_INFO("make dir was successful, code: %d", res);
-			}
-			else APP_LOG_ERROR("make dir was unsuccessful, code: %d", res);
 		}
 
 		/* Open file */
 		APP_SD_Open();
 	}
 
-	char sd_card_buffer[SD_CARD_QUEUE_DATA_LEN];
+	char sd_card_buffer[LOGS_DATA_LEN];
+	static int temp_int, temp_frac, current_int, current_frac;
 	while(1)
 	{
-		xQueueReceive(q_uart_sd_logging, sd_card_buffer, portMAX_DELAY);
+		GlobalData_t log_msg = APP_STATE_Get_Data();
+
+		/* Cast float into integer to print easier*/
+		temp_int = (int)log_msg.temp;
+		temp_frac = (int)((log_msg.temp - (float)temp_int) * 100);
+
+		current_int = (int)log_msg.current;
+		current_frac = (int)((log_msg.current - (float)current_int) * 100);
+
+		snprintf(sd_card_buffer, LOGS_DATA_LEN, "time: %llu, temp: %d%02d, current: %d%02d, target_speed: %d, motor_speed: %d"
+				, log_msg.time, temp_int, temp_frac, current_int, current_frac, (int)log_msg.target_motor_speed, (int)log_msg.real_motor_speed);
 
 		/* UART management */
 		{
 			OSAL_UART3_SendData(sd_card_buffer, strlen(sd_card_buffer));
-			APP_LOG_INFO("UART transmit data");
 		}
 
 		/* SDIO management */
