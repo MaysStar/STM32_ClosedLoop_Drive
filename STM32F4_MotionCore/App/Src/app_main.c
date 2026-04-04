@@ -10,7 +10,7 @@ void APP_Main(AppHardwareConfig_t* app_hw)
 
 	/* First set all task to initialize all BSP */
 	APP_LOGS_Init(app_hw->phsd, app_hw->phuart2, app_hw->phuart3);
-	APP_SENSORS_Init(app_hw->phuart1);
+	APP_SENSORS_Init(app_hw->phuart4, app_hw->phi2c1);
 
 	/* Second initialize all setting in OSAL */
 	APP_STATE_Init();

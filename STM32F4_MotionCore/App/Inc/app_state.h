@@ -19,7 +19,9 @@ typedef enum
 typedef struct{
 	uint64_t time;
 	float temp;
-	float current;
+	float current_A;
+	float power_W;
+	float voltage_V;
 
 	/* from 0 to 100 percent */
 	float real_motor_speed;
@@ -32,7 +34,7 @@ void APP_STATE_Init(void);
 GlobalData_t APP_STATE_Get_Data(void);
 
 void APP_STATE_SET_Time(uint64_t time);
-void APP_STATE_Set_Sensors(float temp, float current);
+void APP_STATE_Set_Sensors(float temp, float current_A, float power_W, float voltage_v);
 void APP_STATE_Set_Motor_Values(float real_motor_speed, float target_motor_speed);
 void APP_STATE_Set_Motor_State(MororState_t motor_state);
 

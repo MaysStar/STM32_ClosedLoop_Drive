@@ -25,7 +25,7 @@
 
 #define SD_CARD_BUFFER_MAX_LEN 512
 
-#define LOGS_DATA_LEN 128
+#define LOGS_DATA_LEN 256
 
 typedef FRESULT SDRESULT;
 

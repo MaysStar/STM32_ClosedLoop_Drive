@@ -23,9 +23,10 @@
 typedef struct
 {
 	SD_HandleTypeDef* phsd;
-	UART_HandleTypeDef* phuart1;
 	UART_HandleTypeDef* phuart2;
 	UART_HandleTypeDef* phuart3;
+	UART_HandleTypeDef* phuart4;
+	I2C_HandleTypeDef* phi2c1;
 } AppHardwareConfig_t;
 
 #include "main.h"

@@ -167,7 +167,7 @@ static void uart_sd_logging_task(void* pvParameters)
 	}
 
 	char sd_card_buffer[LOGS_DATA_LEN];
-	static int temp_int, temp_frac, current_int, current_frac;
+	static int temp_int, temp_frac, current_A_int, current_A_frac, power_W_int, power_W_frac, voltage_V_int, voltage_V_frac;
 	while(1)
 	{
 		GlobalData_t log_msg = APP_STATE_Get_Data();
@@ -176,11 +176,17 @@ static void uart_sd_logging_task(void* pvParameters)
 		temp_int = (int)log_msg.temp;
 		temp_frac = (int)((log_msg.temp - (float)temp_int) * 100);
 
-		current_int = (int)log_msg.current;
-		current_frac = (int)((log_msg.current - (float)current_int) * 100);
+		current_A_int = (int)log_msg.current_A;
+		current_A_frac = (int)((log_msg.current_A - (float)current_A_int) * 100);
 
-		snprintf(sd_card_buffer, LOGS_DATA_LEN, "time: %llu, temp: %d%02d, current: %d%02d, target_speed: %d, motor_speed: %d"
-				, log_msg.time, temp_int, temp_frac, current_int, current_frac, (int)log_msg.target_motor_speed, (int)log_msg.real_motor_speed);
+		power_W_int = (int)log_msg.power_W;
+		power_W_frac = (int)((log_msg.power_W - (float)power_W_int) * 100);
+
+		voltage_V_int = (int)log_msg.voltage_V;
+		voltage_V_frac = (int)((log_msg.voltage_V - (float)voltage_V_int) * 100);
+
+		snprintf(sd_card_buffer, LOGS_DATA_LEN, "time: %lu, temp: %d.%02d, current A: %d.%02d, power W: %d.%02d, voltage V: %d.%02d, target_speed: %d, motor_speed: %d\n"
+				, (uint32_t)log_msg.time, temp_int, temp_frac, current_A_int, current_A_frac, power_W_int, power_W_frac, voltage_V_int, voltage_V_frac, (int)log_msg.target_motor_speed, (int)log_msg.real_motor_speed);
 
 		/* UART management */
 		{

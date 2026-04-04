@@ -26,12 +26,14 @@ GlobalData_t APP_STATE_Get_Data(void)
 	return telemetry_copy;
 }
 
-void APP_STATE_Set_Sensors(float temp, float current)
+void APP_STATE_Set_Sensors(float temp, float current_A, float power_W, float voltage_v)
 {
 	if(xSemaphoreTake(m_telemetry, portMAX_DELAY) == pdTRUE)
 	{
 		GlobalTelemetry.temp = temp;
-		GlobalTelemetry.current = current;
+		GlobalTelemetry.current_A = current_A;
+		GlobalTelemetry.power_W = power_W;
+		GlobalTelemetry.voltage_V = voltage_v;
 
 		xSemaphoreGive(m_telemetry);
 	}
