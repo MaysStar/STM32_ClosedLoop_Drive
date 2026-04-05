@@ -19,6 +19,8 @@
 
 /* std includes */
 #include "string.h"
+#include <stdlib.h>
+#include <math.h>
 
 #define SD_CARD_NOT_PRESENT SD_NOT_PRESENT
 #define SD_CARD_PRESENT 	SD_PRESENT

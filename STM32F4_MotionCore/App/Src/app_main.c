@@ -14,7 +14,15 @@ void APP_Main(AppHardwareConfig_t* app_hw)
 
 	/* Second initialize all setting in OSAL */
 	APP_STATE_Init();
-	OSAL_Init();
+
+	for(uint32_t i = 0; i < 3; ++i)
+	{
+	 	DevStatus_t res = OSAL_Init();
+	 	if(res == DRV_OK)
+	 	{
+	 		break;
+	 	}
+	}
 
 	vTaskStartScheduler();
 }

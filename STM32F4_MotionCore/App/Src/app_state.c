@@ -26,6 +26,29 @@ GlobalData_t APP_STATE_Get_Data(void)
 	return telemetry_copy;
 }
 
+/* Set peripherals state */
+void APP_STATE_Update_Error_BeforeRTOSStart(uint32_t error_flag, uint8_t is_active)
+{
+	if (is_active) {
+		GlobalTelemetry.dev_state |= error_flag;
+	} else {
+		GlobalTelemetry.dev_state &= ~error_flag;
+	}
+}
+
+void APP_STATE_Update_Error(uint32_t error_flag, uint8_t is_active)
+{
+	if(xSemaphoreTake(m_telemetry, portMAX_DELAY) == pdTRUE)
+	{
+		if (is_active) {
+			GlobalTelemetry.dev_state |= error_flag;
+		} else {
+			GlobalTelemetry.dev_state &= ~error_flag;
+		}
+		xSemaphoreGive(m_telemetry);
+	}
+}
+
 void APP_STATE_Set_Sensors(float temp, float current_A, float power_W, float voltage_v)
 {
 	if(xSemaphoreTake(m_telemetry, portMAX_DELAY) == pdTRUE)

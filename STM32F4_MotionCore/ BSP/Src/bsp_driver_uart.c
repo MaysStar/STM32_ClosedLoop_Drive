@@ -9,22 +9,34 @@ static UART_HandleTypeDef* local_puart2 = NULL;
 static UART_HandleTypeDef* local_puart3 = NULL;
 
 /* SET local pointer into the peripherals */
-void BSP_UART_Init(UART_HandleTypeDef* huart2, UART_HandleTypeDef* huart3)
+DevStatus_t BSP_UART_Init(UART_HandleTypeDef* huart2, UART_HandleTypeDef* huart3)
 {
+	if((huart2 == NULL) || (huart3 == NULL))
+	{
+		return DRV_INIT_NEEDED;
+	}
 	local_puart2 = huart2;
 	local_puart3 = huart3;
+
+	return DRV_OK;
 }
 
 /* Send logs through UART2 */
-void BSP_UART3_SendData(char* tx_buffer, uint32_t len)
+DevStatus_t BSP_UART3_SendData(char* tx_buffer, uint32_t len)
 {
-	HAL_UART_Transmit_DMA(local_puart3, (uint8_t*)tx_buffer, len);
+	return(DevStatus_t)HAL_UART_Transmit_DMA(local_puart3, (uint8_t*)tx_buffer, len);
 }
 
 /* Register task notify function */
-void BSP_UART3_RegisterTxCpltCallbak(void (*callback_fun)(void))
+DevStatus_t BSP_UART3_RegisterTxCpltCallbak(void (*callback_fun)(void))
 {
+	if(callback_fun == NULL)
+	{
+		return DRV_INIT_NEEDED;
+	}
 	UART3TxCpltCallbak = callback_fun;
+
+	return DRV_OK;
 }
 
 
@@ -39,7 +51,7 @@ static uint8_t tx_buf_read[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
 static uint8_t rx_buf_read[8];
 
 /* Change UART baudrate */
-static void BSP_UART_1Wire_SetBaudrate(uint32_t baudrate)
+static DevStatus_t BSP_UART_1Wire_SetBaudrate(uint32_t baudrate)
 {
 	local_puart4_1wire->Instance = UART4;
 	local_puart4_1wire->Init.BaudRate = baudrate;
@@ -51,12 +63,14 @@ static void BSP_UART_1Wire_SetBaudrate(uint32_t baudrate)
 	local_puart4_1wire->Init.OverSampling = UART_OVERSAMPLING_16;
 	if (HAL_HalfDuplex_Init(local_puart4_1wire) != HAL_OK)
 	{
-		Error_Handler();
+		return DRV_INIT_NEEDED;
 	}
+
+	return DRV_OK;
 }
 
 /* Function for write at the same time as Initialization using polling mode UART transmit */
-static void BSP_UART_1WireDS18B20_InitWrite(uint8_t data)
+static DevStatus_t BSP_UART_1WireDS18B20_InitWrite(uint8_t data)
 {
 	uint8_t tx_buf[8];
 
@@ -73,13 +87,15 @@ static void BSP_UART_1WireDS18B20_InitWrite(uint8_t data)
 		}
 	}
 
-	HAL_UART_Transmit(local_puart4_1wire, tx_buf, 8, 100);
+	return (DevStatus_t)HAL_UART_Transmit(local_puart4_1wire, tx_buf, 8, 100);
 }
 
 /* Function for read at the same time as Initialization using polling mode UART transmit and receive */
-static uint8_t BSP_UART_1WireDS18B20_InitRead(void)
+static OneWireReadStatus_t BSP_UART_1WireDS18B20_InitRead(void)
 {
-	uint8_t res_value = 0;
+	OneWireReadStatus_t ret;
+	ret.data = 0;
+
 	uint8_t tx_init_byte = 0xFF;
 	uint8_t rx_init_buf[8];
 
@@ -87,8 +103,19 @@ static uint8_t BSP_UART_1WireDS18B20_InitRead(void)
 	for(uint32_t i = 0; i < 8; ++i)
 	{
 		/* Transmit and receive at the same time */
-		HAL_UART_Transmit(local_puart4_1wire, &tx_init_byte, 1, 10);
+		ret.state = (DevStatus_t)HAL_UART_Transmit(local_puart4_1wire, &tx_init_byte, 1, 10);
+		if(ret.state != DRV_OK)
+		{
+			ret.state = DRV_INIT_NEEDED;
+			return ret;
+		}
+
 		HAL_UART_Receive(local_puart4_1wire, &rx_init_buf[i], 1, 10);
+		if(ret.state != DRV_OK)
+		{
+			ret.state = DRV_INIT_NEEDED;
+			return ret;
+		}
 	}
 
 	/* Change bytes into bits */
@@ -96,44 +123,60 @@ static uint8_t BSP_UART_1WireDS18B20_InitRead(void)
 	{
 		if(rx_init_buf[i] >= 0xFE)
 		{
-			res_value |= (1 << i);
+			ret.data |= (1 << i);
 		}
 	}
 
-	return res_value;
+	return ret;
 }
 
-/*Function which uses for setting Reset and Presence
- * return 0 response detected
- * 		  1 failed
- * 		  2 no response
- */
-int BSP_UART_1WireDS18B20_ResetPresence(void)
+/*Function which uses for setting Reset and Presence */
+DevStatus_t BSP_UART_1WireDS18B20_ResetPresence(void)
 {
+	DevStatus_t ret;
 	/* Special byte to use this two operation */
 	uint8_t data_for_reset_presence = 0xF0;
 
 	/* Set baudrate 9600 for timings */
-	BSP_UART_1Wire_SetBaudrate(9600);
-
-	/* Reset */
-	HAL_UART_Transmit(local_puart4_1wire, &data_for_reset_presence, 1, 100); // Low for 500+ ms
-
-	/* Presence */
-	if(HAL_UART_Receive(local_puart4_1wire, &data_for_reset_presence, 1, 1000) != HAL_OK)
+	ret = BSP_UART_1Wire_SetBaudrate(9600);
+	if(ret != DRV_OK)
 	{
-		return 1;
+		return DRV_INIT_NEEDED;
 	}
 
-	BSP_UART_1Wire_SetBaudrate(115200);
-	if(data_for_reset_presence == 0xF0) return 2;
+	/* Reset */
+	ret = (DevStatus_t)HAL_UART_Transmit(local_puart4_1wire, &data_for_reset_presence, 1, 100); // Low for 500+ ms
+	if(ret != DRV_OK)
+	{
+		return ret;
+	}
 
-	return 0;
+	/* Presence */
+	ret = (DevStatus_t)HAL_UART_Receive(local_puart4_1wire, &data_for_reset_presence, 1, 1000);
+
+	if(ret != DRV_OK)
+	{
+		return ret;
+	}
+
+	ret = BSP_UART_1Wire_SetBaudrate(115200);
+	if(ret != DRV_OK)
+	{
+		return DRV_INIT_NEEDED;
+	}
+
+	if(data_for_reset_presence == 0xF0)
+	{
+		return DRV_ERROR;
+	}
+
+	return ret;
 }
 
 /* Function for use with OSAL. UART transmit with DMA */
-void BSP_UART_1WireDS18B20_Write(uint8_t data)
+DevStatus_t BSP_UART_1WireDS18B20_Write(uint8_t data)
 {
+	DevStatus_t ret;
 	static uint8_t tx_buf[8];
 
 	/* Change bits into bytes */
@@ -149,16 +192,27 @@ void BSP_UART_1WireDS18B20_Write(uint8_t data)
 		}
 	}
 
-	HAL_UART_Receive_DMA(local_puart4_1wire, rx_buf_read, 8);
-	HAL_UART_Transmit_DMA(local_puart4_1wire, tx_buf, 8);
+	ret = (DevStatus_t)HAL_UART_Receive_DMA(local_puart4_1wire, rx_buf_read, 8);
+	if(ret != DRV_OK)
+	{
+		return ret;
+	}
+
+	return (DevStatus_t)HAL_UART_Transmit_DMA(local_puart4_1wire, tx_buf, 8);
 }
 
 /* Couple of functions for use with OSAL. UART transmit and receive with DMA */
-void BSP_UART_1WireDS18B20_ReadStart(void)
+DevStatus_t BSP_UART_1WireDS18B20_ReadStart(void)
 {
+	DevStatus_t ret;
 	/* Listening Rx and the same time transmit Tx */
-	HAL_UART_Receive_DMA(local_puart4_1wire, rx_buf_read, 8);
-	HAL_UART_Transmit_DMA(local_puart4_1wire, tx_buf_read, 8);
+	ret = (DevStatus_t)HAL_UART_Receive_DMA(local_puart4_1wire, rx_buf_read, 8);
+	if(ret != DRV_OK)
+	{
+		return ret;
+	}
+
+	return (DevStatus_t)HAL_UART_Transmit_DMA(local_puart4_1wire, tx_buf_read, 8);
 }
 
 uint8_t BSP_UART_1WireDS18B20_ReadEnd(void)
@@ -201,69 +255,128 @@ uint8_t BSP_UART_1WireDS18B20_CalculateCRC(uint8_t* data, uint32_t len)
 }
 
 /* Initialize DS18B20 module set approximately 100ms measurement temperature */
-void BSP_UART_1WireDS18B20_Init(UART_HandleTypeDef* huart4)
+DevStatus_t BSP_UART_1WireDS18B20_Init(UART_HandleTypeDef* huart4)
 {
+	DevStatus_t ret;
+	if(huart4 == NULL)
+	{
+		return DRV_INIT_NEEDED;
+	}
 	local_puart4_1wire = huart4;
 
 	uint8_t scratchpad_buffer[9];
 
-	if(BSP_UART_1WireDS18B20_ResetPresence() != 0)
+	ret = BSP_UART_1WireDS18B20_ResetPresence();
+	if(ret != DRV_OK)
 	{
-		/* Start fail */
-		return;
+		return DRV_INIT_NEEDED;
 	}
 
-	BSP_UART_1WireDS18B20_InitWrite(0xCC); /* Skip ROM */
-	BSP_UART_1WireDS18B20_InitWrite(0xBE); /* Read Scratchpad */
+	ret = BSP_UART_1WireDS18B20_InitWrite(0xCC); /* Skip ROM */
+	if(ret != DRV_OK)
+	{
+		return DRV_INIT_NEEDED;
+	}
+
+	ret = BSP_UART_1WireDS18B20_InitWrite(0xBE); /* Read Scratchpad */
+	if(ret != DRV_OK)
+	{
+		return DRV_INIT_NEEDED;
+	}
 
 	for(uint32_t i = 0; i < 9; ++i)
 	{
-		scratchpad_buffer[i] = BSP_UART_1WireDS18B20_InitRead();
+		OneWireReadStatus_t init_read = BSP_UART_1WireDS18B20_InitRead();
+		if(init_read.state != DRV_OK)
+		{
+			return DRV_INIT_NEEDED;
+		}
+		scratchpad_buffer[i] = init_read.data;
 	}
 
 	/* TL and TH leave the same and change resolution into 9 bit */
 	scratchpad_buffer[4] &= ~(1 << 5);
 	scratchpad_buffer[4] &= ~(1 << 6);
 
-	if(BSP_UART_1WireDS18B20_ResetPresence() != 0)
+	ret = BSP_UART_1WireDS18B20_ResetPresence();
+	if(ret != DRV_OK)
 	{
-		/* Start fail */
-		return;
+		return DRV_INIT_NEEDED;
 	}
 
-	BSP_UART_1WireDS18B20_InitWrite(0xCC); /* Skip ROM */
-	BSP_UART_1WireDS18B20_InitWrite(0x4E); /* Write Scratchpad */
-
-	BSP_UART_1WireDS18B20_InitWrite(scratchpad_buffer[2]);
-	BSP_UART_1WireDS18B20_InitWrite(scratchpad_buffer[3]);
-	BSP_UART_1WireDS18B20_InitWrite(scratchpad_buffer[4]);
-
-	if(BSP_UART_1WireDS18B20_ResetPresence() != 0)
+	ret = BSP_UART_1WireDS18B20_InitWrite(0xCC); /* Skip ROM */
+	if(ret != DRV_OK)
 	{
-		/* Start fail */
-		return;
+		return DRV_INIT_NEEDED;
 	}
 
+	ret = BSP_UART_1WireDS18B20_InitWrite(0x4E); /* Write Scratchpad */
+	if(ret != DRV_OK)
+	{
+		return DRV_INIT_NEEDED;
+	}
+
+	for(uint32_t i = 2; i < 5; ++i)
+	{
+		ret = BSP_UART_1WireDS18B20_InitWrite(scratchpad_buffer[i]);
+		if(ret != DRV_OK)
+		{
+			return DRV_INIT_NEEDED;
+		}
+	}
+
+	ret = BSP_UART_1WireDS18B20_ResetPresence();
+	if(ret != DRV_OK)
+	{
+		return DRV_INIT_NEEDED;
+	}
 	/*Skip first data check CRC */
 
-	BSP_UART_1WireDS18B20_InitWrite(0xCC); /* Skip ROM */
-	BSP_UART_1WireDS18B20_InitWrite(0x48); /* Copy Scratchpad */
+	ret = BSP_UART_1WireDS18B20_InitWrite(0xCC); /* Skip ROM */
+	if(ret != DRV_OK)
+	{
+		return DRV_INIT_NEEDED;
+	}
+
+	ret = BSP_UART_1WireDS18B20_InitWrite(0x48); /* Copy Scratchpad */
+	if(ret != DRV_OK)
+	{
+		return DRV_INIT_NEEDED;
+	}
 
 	/* After issuing this command, the master must wait 10 ms for copy operation to complete */
 	HAL_Delay(10);
 
-	BSP_UART_1WireDS18B20_ResetPresence();
+	ret = BSP_UART_1WireDS18B20_ResetPresence();
+	if(ret != DRV_OK)
+	{
+		return DRV_INIT_NEEDED;
+	}
+
+	return ret;
 }
 
 /* Register callback functions */
-void BSP_UART_1Wire_RegisterTxCpltCallbak(void (*callback_fun)(void))
+DevStatus_t BSP_UART_1Wire_RegisterTxCpltCallbak(void (*callback_fun)(void))
 {
+	if(callback_fun == NULL)
+	{
+		return DRV_INIT_NEEDED;
+	}
 	UART_1WireTxCpltCallbak = callback_fun;
+
+	return DRV_OK;
 }
 
-void BSP_UART_1Wire_RegisterRxCpltCallbak(void (*callback_fun)(void))
+DevStatus_t BSP_UART_1Wire_RegisterRxCpltCallbak(void (*callback_fun)(void))
 {
+	if(callback_fun == NULL)
+	{
+		return DRV_INIT_NEEDED;
+	}
 	UART_1WireRxCpltCallbak = callback_fun;
+
+	return DRV_OK;
 }
 
 /* Overwrite HAL Tx/RxCpltCallback */
@@ -271,7 +384,10 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if(huart->Instance == USART3)
 	{
-		UART3TxCpltCallbak();
+		if(UART3TxCpltCallbak != NULL)
+		{
+			UART3TxCpltCallbak();
+		}
 	}
 }
 
@@ -279,6 +395,9 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if(huart->Instance == UART4)
 	{
-		UART_1WireRxCpltCallbak();
+		if(UART_1WireRxCpltCallbak != NULL)
+		{
+			UART_1WireRxCpltCallbak();
+		}
 	}
 }

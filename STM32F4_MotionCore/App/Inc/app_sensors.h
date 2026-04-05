@@ -18,6 +18,6 @@
 /* else includes */
 #include "string.h"
 
-void APP_SENSORS_Init(UART_HandleTypeDef* phuart4, I2C_HandleTypeDef* hi2c1);
+void APP_SENSORS_Init(UART_HandleTypeDef* phuart4, I2C_HandleTypeDef* phi2c1);
 
 #endif /* APP_SENSORS_H */

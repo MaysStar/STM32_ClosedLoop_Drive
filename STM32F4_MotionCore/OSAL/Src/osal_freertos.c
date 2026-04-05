@@ -113,19 +113,31 @@ static void UART_RegisterMutexes(void)
 {
 	/* Create all UART Mutexes */
 	m_uart2 = xSemaphoreCreateMutex();
+	configASSERT(m_uart2 != NULL);
+
 	m_uart3 = xSemaphoreCreateMutex();
+	configASSERT(m_uart3 != NULL);
+
 	m_uart4 = xSemaphoreCreateMutex();
+	configASSERT(m_uart4 != NULL);
 }
 
 static void I2C_RegisterMutexes(void)
 {
 	/* Create all I2C Mutexes */
 	m_i2c1 = xSemaphoreCreateMutex();
+	configASSERT(m_i2c1 != NULL);
 }
 
 /* Function for thread save data sending for tasks and that function guarantees UART DMA operation will be completed */
-void OSAL_UART3_SendData(char* tx_buffer, uint32_t len)
+DevStatus_t OSAL_UART3_SendData(char* tx_buffer, uint32_t len)
 {
+	DevStatus_t ret;
+
+	if(tx_buffer == NULL)
+	{
+		return DRV_ERROR;
+	}
 	/* Take Mutex for UART3 */
 	UART3_MutexTake();
 
@@ -135,7 +147,11 @@ void OSAL_UART3_SendData(char* tx_buffer, uint32_t len)
 	/* Clear all possible old notification */
 	ulTaskNotifyTake(pdTRUE, 0);
 
-	BSP_UART3_SendData(tx_buffer, len);
+	ret = BSP_UART3_SendData(tx_buffer, len);
+	if(ret != DRV_OK)
+	{
+		return ret;
+	}
 
 	/* Wait until UART DMA Transmission will be completed */
 	ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(300));
@@ -144,37 +160,53 @@ void OSAL_UART3_SendData(char* tx_buffer, uint32_t len)
 	curr_logs_task = NULL;
 
 	UART3_MutexGive();
+
+	return ret;
 }
 
 /* Helper function for Write and Read from DS18B20 sensor */
-static void OSAL_UART_1Wire_Write(uint8_t data)
+static DevStatus_t OSAL_UART_1Wire_Write(uint8_t data)
 {
 	/* Clear old notifications */
 	ulTaskNotifyTake(pdTRUE, 0);
 
-	BSP_UART_1WireDS18B20_Write(data);
+	DevStatus_t ret = BSP_UART_1WireDS18B20_Write(data);
+	if(ret != DRV_OK)
+	{
+		return ret;
+	}
 
 	ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(500));
+
+	return ret;
 }
 
-static uint8_t OSAL_UART_1Wire_Read(void)
+static OneWireReadStatus_t OSAL_UART_1Wire_Read(void)
 {
+	OneWireReadStatus_t ret;
+	ret.data = 0;
 	/* Clear old notifications */
 	ulTaskNotifyTake(pdTRUE, 0);
 
 	/* Wait until Transmission and receiving end */
-	BSP_UART_1WireDS18B20_ReadStart();
+	ret.state = BSP_UART_1WireDS18B20_ReadStart();
+	if(ret.state != DRV_OK)
+	{
+		return ret;
+	}
 
 	ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(500));
 
 	/* Get data */
-	return BSP_UART_1WireDS18B20_ReadEnd();
+	ret.data = BSP_UART_1WireDS18B20_ReadEnd();
+	return ret;
 }
 
 /* Function for thread save data transmission and receiving for tasks. The function guarantees UART DMA operation will be completed */
-float OSAL_UART_1Wire_GetTemperature(void)
+SafeData_t OSAL_UART_1Wire_GetTemperature(void)
 {
-	static float curr_temp = 0.0f;
+	SafeData_t curr_temp;
+	curr_temp.data = 0.0f;
 
 	uint8_t	scratchpad_buffer[9];
 
@@ -182,34 +214,71 @@ float OSAL_UART_1Wire_GetTemperature(void)
 	UART4_MutexTake();
 	curr_temp_task = xTaskGetCurrentTaskHandle();
 
-	BSP_UART_1WireDS18B20_ResetPresence();
+	curr_temp.state = BSP_UART_1WireDS18B20_ResetPresence();
+	if(curr_temp.state != DRV_OK)
+	{
+		return curr_temp;
+	}
 
-	OSAL_UART_1Wire_Write(0xCC); /* Skip ROM */
-	OSAL_UART_1Wire_Write(0x44); /* Issue “ Convert T” */
+	curr_temp.state = OSAL_UART_1Wire_Write(0xCC); /* Skip ROM */
+	if(curr_temp.state != DRV_OK)
+	{
+		return curr_temp;
+	}
+
+	curr_temp.state = OSAL_UART_1Wire_Write(0x44); /* Issue “ Convert T” */
+	if(curr_temp.state != DRV_OK)
+	{
+		return curr_temp;
+	}
 
 	/* Wait for tconv it that case it is approximately 100 ms. Internal pull up set level 1 in the bus*/
 	vTaskDelay(pdMS_TO_TICKS(100));
 
 	/* New operation read Scratchpad */
-	BSP_UART_1WireDS18B20_ResetPresence();
-
-	OSAL_UART_1Wire_Write(0xCC); /* Skip ROM */
-	OSAL_UART_1Wire_Write(0xBE); /* Issue “Read Scratchpad” */
-
-	for(uint32_t i = 0; i < 9; ++i)
-	{
-		scratchpad_buffer[i] = OSAL_UART_1Wire_Read();
-	}
-
-	/* End all operation */
-	BSP_UART_1WireDS18B20_ResetPresence();
-
-	if(BSP_UART_1WireDS18B20_CalculateCRC(scratchpad_buffer, 8) != scratchpad_buffer[8])
+	curr_temp.state = BSP_UART_1WireDS18B20_ResetPresence();
+	if(curr_temp.state != DRV_OK)
 	{
 		return curr_temp;
 	}
 
-	curr_temp = (((float)((scratchpad_buffer[1] << 8) | scratchpad_buffer[0])) / 16.0f);
+	curr_temp.state  = OSAL_UART_1Wire_Write(0xCC); /* Skip ROM */
+	if(curr_temp.state != DRV_OK)
+	{
+		return curr_temp;
+	}
+
+	curr_temp.state = OSAL_UART_1Wire_Write(0xBE); /* Issue “Read Scratchpad” */
+	if(curr_temp.state != DRV_OK)
+	{
+		return curr_temp;
+	}
+
+	for(uint32_t i = 0; i < 9; ++i)
+	{
+		OneWireReadStatus_t temp_read = OSAL_UART_1Wire_Read();
+		if(temp_read.state != DRV_OK)
+		{
+			curr_temp.state = temp_read.state;
+			return curr_temp;
+		}
+		scratchpad_buffer[i] = temp_read.data;
+	}
+
+	/* End all operation */
+	curr_temp.state = BSP_UART_1WireDS18B20_ResetPresence();
+	if(curr_temp.state != DRV_OK)
+	{
+		return curr_temp;
+	}
+
+	if(BSP_UART_1WireDS18B20_CalculateCRC(scratchpad_buffer, 8) != scratchpad_buffer[8])
+	{
+		curr_temp.state = DRV_ERROR;
+		return curr_temp;
+	}
+
+	curr_temp.data = (((float)((scratchpad_buffer[1] << 8) | scratchpad_buffer[0])) / 16.0f);
 
 	/* Give Mutex and reset curr_task value */
 	curr_temp_task = NULL;
@@ -219,42 +288,65 @@ float OSAL_UART_1Wire_GetTemperature(void)
 }
 
 /* Function for thread save get current */
-static float OSAL_I2C_GetCurrent(void)
+static SafeData_t OSAL_I2C_GetCurrent(void)
 {
+	SafeData_t ret;
+	ret.data = 0.0f;
 	/* Clear old notifications */
 	ulTaskNotifyTake(pdTRUE, 0);
-	BSP_I2C_ReadCurrent();
+	ret.state = BSP_I2C_ReadCurrent();
+	if(ret.state != DRV_OK)
+	{
+		return ret;
+	}
 
 	/* Wait till DMA finished */
 	ulTaskNotifyTake(pdTRUE, 300);
 
-	return BSP_I2C_GetCurrent();
+	ret.data = BSP_I2C_GetCurrent();
+	return ret;
 }
 
 /* Function for thread save get power */
-static float OSAL_I2C_GetPower(void)
+static SafeData_t OSAL_I2C_GetPower(void)
 {
+	SafeData_t ret;
+	ret.data = 0.0f;
+
 	/* Clear old notifications */
 	ulTaskNotifyTake(pdTRUE, 0);
-	BSP_I2C_ReadPower();
+	ret.state = BSP_I2C_ReadPower();
+	if(ret.state != DRV_OK)
+	{
+		return ret;
+	}
 
 	/* Wait till DMA finished */
 	ulTaskNotifyTake(pdTRUE, 300);
 
-	return BSP_I2C_GetPower();
+	ret.data = BSP_I2C_GetPower();
+	return ret;
 }
 
 /* Function for thread save get voltage */
-static float OSAL_I2C_GetVoltage(void)
+static SafeData_t OSAL_I2C_GetVoltage(void)
 {
+	SafeData_t ret;
+	ret.data = 0.0f;
+
 	/* Clear old notifications */
 	ulTaskNotifyTake(pdTRUE, 0);
-	BSP_I2C_ReadVoltage();
+	ret.state = BSP_I2C_ReadVoltage();
+	if(ret.state != DRV_OK)
+	{
+		return ret;
+	}
 
 	/* Wait till DMA finished */
 	ulTaskNotifyTake(pdTRUE, 300);
 
-	return BSP_I2C_GetVoltage();
+	ret.data = BSP_I2C_GetVoltage();
+	return ret;
 }
 
 /* Function for thread save data receiving for tasks. The function guarantees I2C DMA operation will be completed */
@@ -263,14 +355,37 @@ Electricity_t OSAL_I2C1_GetElectricity(void)
 	vTaskDelay(pdMS_TO_TICKS(1));
 
 	Electricity_t measurement;
+	SafeData_t res;
 
 	/* Take Mutex and get task handle */
 	I2C1_MutexTake();
 	curr_electricity_task = xTaskGetCurrentTaskHandle();
 
-	measurement.current_A = OSAL_I2C_GetCurrent();
-	measurement.power_W = OSAL_I2C_GetPower();
-	measurement.voltage_V = OSAL_I2C_GetVoltage();
+	res = OSAL_I2C_GetCurrent();
+	if(res.state != DRV_OK)
+	{
+		measurement.state = res.state;
+		return measurement;
+	}
+	measurement.current_A = res.data;
+
+	res = OSAL_I2C_GetPower();
+	if(res.state != DRV_OK)
+	{
+		measurement.state = res.state;
+		return measurement;
+	}
+	measurement.power_W = res.data;
+
+	res = OSAL_I2C_GetVoltage();
+	if(res.state != DRV_OK)
+	{
+		measurement.state = res.state;
+		return measurement;
+	}
+	measurement.voltage_V = res.data;
+
+	measurement.state = res.state;
 
 	/* Give Mutex and set NULL in task handle */
 	curr_electricity_task = NULL;
@@ -279,20 +394,34 @@ Electricity_t OSAL_I2C1_GetElectricity(void)
 	return measurement;
 }
 
-void OSAL_Init(void)
+DevStatus_t OSAL_Init(void)
 {
 	/* Registration callback function */
-	BSP_UART3_RegisterTxCpltCallbak(UART3_TxCpltCallbak);
+	DevStatus_t ret = BSP_UART3_RegisterTxCpltCallbak(UART3_TxCpltCallbak);
+	if(ret != DRV_OK)
+	{
+		return ret;
+	}
 
-	BSP_UART_1Wire_RegisterRxCpltCallbak(UART4_TxRxCpltCallbak);
+	ret = BSP_UART_1Wire_RegisterRxCpltCallbak(UART4_TxRxCpltCallbak);
+	if(ret != DRV_OK)
+	{
+		return ret;
+	}
 
-	BSP_I2C1_RegisterRxCpltCallbak(I2C1_TxRxCpltCallbak);
+	ret = BSP_I2C1_RegisterRxCpltCallbak(I2C1_TxRxCpltCallbak);
+	if(ret != DRV_OK)
+	{
+		return ret;
+	}
 
 	/* SDIO already has freeRTOS integration via SD BSP uses in diskio.c and FatFs. Since they are third-party files, I am keeping their default architectures */
 
 	/* Registration structures */
 	UART_RegisterMutexes();
 	I2C_RegisterMutexes();
+
+	return ret;
 }
 
 /* Here you get when the one task make stack overflow and you can check it is name */
