@@ -4,27 +4,29 @@
 /* OSAL level include */
 #include "osal_freertos.h"
 
-/* APP level include*/
-#include <app_config.h>
-#include <app_uart_sd_logs.h>
-
-/* third party include */
+/* third party includes */
 #include "FreeRTOS.h"
 #include "FreeRTOSConfig.h"
 #include "task.h"
 
+/* APP level includes*/
+#include <app_uart_sd_logs.h>
+#include <app_sensors.h>
+#include <app_state.h>
+
 #include "SEGGER_SYSVIEW.h"
 
-/* else include*/
+/* else includes*/
 #include <stdio.h>
 #include <string.h>
 
 typedef struct
 {
 	SD_HandleTypeDef* phsd;
-	UART_HandleTypeDef* phuart1;
 	UART_HandleTypeDef* phuart2;
 	UART_HandleTypeDef* phuart3;
+	UART_HandleTypeDef* phuart4;
+	I2C_HandleTypeDef* phi2c1;
 } AppHardwareConfig_t;
 
 #include "main.h"
