@@ -32,6 +32,3 @@ A dedicated MCU for human-machine interaction:
         OSAL (Operating System Abstraction Layer): Integration of FreeRTOS features, thread-safe DMA operations, and synchronization.
 
         APP (Application Layer): High-level logic for user applications and control algorithms.
-
-UART logs print
-![alt text](image.png)
