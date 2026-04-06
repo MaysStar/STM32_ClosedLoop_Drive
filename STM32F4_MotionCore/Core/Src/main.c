@@ -132,6 +132,8 @@ int main(void)
 
   /* Set one to enable DWT cycle buffer which is necessary for SEGGER */
   DWT_CTRL |= (1 << 0);
+  CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+  DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 
   HAL_Delay(500);
 

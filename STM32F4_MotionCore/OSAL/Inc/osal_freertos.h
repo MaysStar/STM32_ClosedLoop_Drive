@@ -30,4 +30,8 @@ DevStatus_t OSAL_UART3_SendData(char* tx_buffer, uint32_t len);
 SafeData_t OSAL_UART_1Wire_GetTemperature(void);
 Electricity_t OSAL_I2C1_GetElectricity(void);
 
+void OSAL_UART3_SendData(char* tx_buffer, uint32_t len);
+float OSAL_UART_1Wire_GetTemperature(void);
+Electricity_t OSAL_I2C1_GetElectricity(void);
+
 #endif /* OSAL_FREERTOS_H_ */
