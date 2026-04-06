@@ -13,6 +13,11 @@ void APP_STATE_Init(void)
 	configASSERT(m_telemetry != NULL);
 }
 
+uint32_t APP_STATE_Get_State(void)
+{
+	return GlobalTelemetry.dev_state;
+}
+
 /* Program global data and state functions */
 GlobalData_t APP_STATE_Get_Data(void)
 {

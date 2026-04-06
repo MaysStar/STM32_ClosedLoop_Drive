@@ -41,6 +41,7 @@ typedef struct{
 
 void APP_STATE_Init(void);
 
+uint32_t APP_STATE_Get_State(void);
 GlobalData_t APP_STATE_Get_Data(void);
 
 void APP_STATE_Update_Error_BeforeRTOSStart(uint32_t error_flag, uint8_t is_active);
