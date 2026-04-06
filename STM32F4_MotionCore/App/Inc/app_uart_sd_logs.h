@@ -15,10 +15,13 @@
 #include "task.h"
 #include "queue.h"
 
+/* APP level include*/
 #include <app_state.h>
 
 /* std includes */
 #include "string.h"
+#include <stdlib.h>
+#include <math.h>
 
 #define SD_CARD_NOT_PRESENT SD_NOT_PRESENT
 #define SD_CARD_PRESENT 	SD_PRESENT

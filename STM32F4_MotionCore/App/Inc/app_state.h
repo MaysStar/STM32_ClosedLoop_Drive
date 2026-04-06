@@ -5,9 +5,18 @@
 #include "stdio.h"
 #include "stdint.h"
 
+/* osal include */
+#include "osal_freertos.h"
+
 /* third party includes */
 #include "FreeRTOS.h"
 #include "semphr.h"
+
+#define ERR_OSAL_INIT 		(1 << 0)
+#define ERR_TEMP_SENSOR  	(1 << 1)
+#define ERR_POWER_SENSOR 	(1 << 2)
+#define ERR_SD_CARD_LOG 	(1 << 3)
+#define ERR_UART_LOG		(1 << 4)
 
 typedef enum
 {
@@ -22,6 +31,7 @@ typedef struct{
 	float current_A;
 	float power_W;
 	float voltage_V;
+	uint32_t dev_state; /* group state */
 
 	/* from 0 to 100 percent */
 	float real_motor_speed;
@@ -31,7 +41,11 @@ typedef struct{
 
 void APP_STATE_Init(void);
 
+uint32_t APP_STATE_Get_State(void);
 GlobalData_t APP_STATE_Get_Data(void);
+
+void APP_STATE_Update_Error_BeforeRTOSStart(uint32_t error_flag, uint8_t is_active);
+void APP_STATE_Update_Error(uint32_t error_flag, uint8_t is_active);
 
 void APP_STATE_SET_Time(uint64_t time);
 void APP_STATE_Set_Sensors(float temp, float current_A, float power_W, float voltage_v);
