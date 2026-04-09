@@ -4,12 +4,15 @@
 static TaskHandle_t curr_logs_task = NULL;
 static TaskHandle_t curr_temp_task = NULL;
 static TaskHandle_t curr_electricity_task = NULL;
+static TaskHandle_t curr_housekeeping_task = NULL;
 
 static SemaphoreHandle_t m_uart2 = NULL;
 static SemaphoreHandle_t m_uart3 = NULL;
 static SemaphoreHandle_t m_uart4 = NULL;
 
 static SemaphoreHandle_t m_i2c1 = NULL;
+
+static SemaphoreHandle_t m_rtc = NULL;
 
 /* Registered function for UART3 callback */
 static void UART3_TxCpltCallbak(void)
@@ -109,6 +112,23 @@ static void I2C1_MutexGive(void)
 	}
 }
 
+/* RTC take and give semaphore */
+static void RTC_MutexTake(void)
+{
+	if(m_rtc!= NULL)
+	{
+		xSemaphoreTake(m_rtc, portMAX_DELAY);
+	}
+}
+
+static void RTC_MutexGive(void)
+{
+	if(m_rtc != NULL)
+	{
+		xSemaphoreGive(m_rtc);
+	}
+}
+
 static void UART_RegisterMutexes(void)
 {
 	/* Create all UART Mutexes */
@@ -127,6 +147,13 @@ static void I2C_RegisterMutexes(void)
 	/* Create all I2C Mutexes */
 	m_i2c1 = xSemaphoreCreateMutex();
 	configASSERT(m_i2c1 != NULL);
+}
+
+static void RTC_RegisterMutex(void)
+{
+	/* Create all RTC Mutexes */
+	m_rtc = xSemaphoreCreateMutex();
+	configASSERT(m_rtc != NULL);
 }
 
 /* Function for thread save data sending for tasks and that function guarantees UART DMA operation will be completed */
@@ -150,11 +177,16 @@ DevStatus_t OSAL_UART3_SendData(char* tx_buffer, uint32_t len)
 	ret = BSP_UART3_SendData(tx_buffer, len);
 	if(ret != DRV_OK)
 	{
+		UART3_MutexGive();
 		return ret;
 	}
 
 	/* Wait until UART DMA Transmission will be completed */
-	ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(300));
+	if(ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(500)) == 0)
+	{
+		UART3_MutexGive();
+		return DRV_ERROR;
+	}
 
 	/* Reset current task handle */
 	curr_logs_task = NULL;
@@ -176,7 +208,10 @@ static DevStatus_t OSAL_UART_1Wire_Write(uint8_t data)
 		return ret;
 	}
 
-	ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(500));
+	if(ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(500)) == 0)
+	{
+		return DRV_ERROR;
+	}
 
 	return ret;
 }
@@ -195,7 +230,11 @@ static OneWireReadStatus_t OSAL_UART_1Wire_Read(void)
 		return ret;
 	}
 
-	ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(500));
+	if(ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(500)) == 0)
+	{
+		ret.state = DRV_ERROR;
+		return ret;
+	}
 
 	/* Get data */
 	ret.data = BSP_UART_1WireDS18B20_ReadEnd();
@@ -217,18 +256,21 @@ SafeData_t OSAL_UART_1Wire_GetTemperature(void)
 	curr_temp.state = BSP_UART_1WireDS18B20_ResetPresence();
 	if(curr_temp.state != DRV_OK)
 	{
+		UART4_MutexGive();
 		return curr_temp;
 	}
 
 	curr_temp.state = OSAL_UART_1Wire_Write(0xCC); /* Skip ROM */
 	if(curr_temp.state != DRV_OK)
 	{
+		UART4_MutexGive();
 		return curr_temp;
 	}
 
 	curr_temp.state = OSAL_UART_1Wire_Write(0x44); /* Issue “ Convert T” */
 	if(curr_temp.state != DRV_OK)
 	{
+		UART4_MutexGive();
 		return curr_temp;
 	}
 
@@ -239,18 +281,21 @@ SafeData_t OSAL_UART_1Wire_GetTemperature(void)
 	curr_temp.state = BSP_UART_1WireDS18B20_ResetPresence();
 	if(curr_temp.state != DRV_OK)
 	{
+		UART4_MutexGive();
 		return curr_temp;
 	}
 
 	curr_temp.state  = OSAL_UART_1Wire_Write(0xCC); /* Skip ROM */
 	if(curr_temp.state != DRV_OK)
 	{
+		UART4_MutexGive();
 		return curr_temp;
 	}
 
 	curr_temp.state = OSAL_UART_1Wire_Write(0xBE); /* Issue “Read Scratchpad” */
 	if(curr_temp.state != DRV_OK)
 	{
+		UART4_MutexGive();
 		return curr_temp;
 	}
 
@@ -260,6 +305,7 @@ SafeData_t OSAL_UART_1Wire_GetTemperature(void)
 		if(temp_read.state != DRV_OK)
 		{
 			curr_temp.state = temp_read.state;
+			UART4_MutexGive();
 			return curr_temp;
 		}
 		scratchpad_buffer[i] = temp_read.data;
@@ -269,12 +315,14 @@ SafeData_t OSAL_UART_1Wire_GetTemperature(void)
 	curr_temp.state = BSP_UART_1WireDS18B20_ResetPresence();
 	if(curr_temp.state != DRV_OK)
 	{
+		UART4_MutexGive();
 		return curr_temp;
 	}
 
 	if(BSP_UART_1WireDS18B20_CalculateCRC(scratchpad_buffer, 8) != scratchpad_buffer[8])
 	{
 		curr_temp.state = DRV_ERROR;
+		UART4_MutexGive();
 		return curr_temp;
 	}
 
@@ -301,7 +349,11 @@ static SafeData_t OSAL_I2C_GetCurrent(void)
 	}
 
 	/* Wait till DMA finished */
-	ulTaskNotifyTake(pdTRUE, 300);
+	if(ulTaskNotifyTake(pdTRUE, 300) == 0)
+	{
+		ret.state = DRV_ERROR;
+		return ret;
+	}
 
 	ret.data = BSP_I2C_GetCurrent();
 	return ret;
@@ -322,7 +374,11 @@ static SafeData_t OSAL_I2C_GetPower(void)
 	}
 
 	/* Wait till DMA finished */
-	ulTaskNotifyTake(pdTRUE, 300);
+	if(ulTaskNotifyTake(pdTRUE, 300) == 0)
+	{
+		ret.state = DRV_ERROR;
+		return ret;
+	}
 
 	ret.data = BSP_I2C_GetPower();
 	return ret;
@@ -343,7 +399,11 @@ static SafeData_t OSAL_I2C_GetVoltage(void)
 	}
 
 	/* Wait till DMA finished */
-	ulTaskNotifyTake(pdTRUE, 300);
+	if(ulTaskNotifyTake(pdTRUE, 300) == 0)
+	{
+		ret.state = DRV_ERROR;
+		return ret;
+	}
 
 	ret.data = BSP_I2C_GetVoltage();
 	return ret;
@@ -353,7 +413,6 @@ static SafeData_t OSAL_I2C_GetVoltage(void)
 Electricity_t OSAL_I2C1_GetElectricity(void)
 {
 	vTaskDelay(pdMS_TO_TICKS(1));
-
 	Electricity_t measurement;
 	SafeData_t res;
 
@@ -365,6 +424,7 @@ Electricity_t OSAL_I2C1_GetElectricity(void)
 	if(res.state != DRV_OK)
 	{
 		measurement.state = res.state;
+		I2C1_MutexGive();
 		return measurement;
 	}
 	measurement.current_A = res.data;
@@ -373,6 +433,7 @@ Electricity_t OSAL_I2C1_GetElectricity(void)
 	if(res.state != DRV_OK)
 	{
 		measurement.state = res.state;
+		I2C1_MutexGive();
 		return measurement;
 	}
 	measurement.power_W = res.data;
@@ -381,6 +442,7 @@ Electricity_t OSAL_I2C1_GetElectricity(void)
 	if(res.state != DRV_OK)
 	{
 		measurement.state = res.state;
+		I2C1_MutexGive();
 		return measurement;
 	}
 	measurement.voltage_V = res.data;
@@ -392,6 +454,24 @@ Electricity_t OSAL_I2C1_GetElectricity(void)
 	I2C1_MutexGive();
 
 	return measurement;
+}
+
+/* Function for thread save data get for tasks. The function guarantees RTC operation will be completed */
+DevStatus_t OSAL_RTC_GetDataDateTime(RTC_DateTypeDef* pdate, RTC_TimeTypeDef* ptime)
+{
+	/* Take Mutex and set curr_task value */
+	RTC_MutexTake();
+
+	curr_housekeeping_task = xTaskGetCurrentTaskHandle();
+
+	DevStatus_t ret = BSP_RTC_GetDataDateTime(pdate, ptime);
+
+	/* Give Mutex and set curr_task NULL */
+	curr_housekeeping_task = NULL;
+
+	RTC_MutexGive();
+
+	return ret;
 }
 
 DevStatus_t OSAL_Init(void)
@@ -420,6 +500,7 @@ DevStatus_t OSAL_Init(void)
 	/* Registration structures */
 	UART_RegisterMutexes();
 	I2C_RegisterMutexes();
+	RTC_RegisterMutex();
 
 	return ret;
 }

@@ -170,12 +170,23 @@ static void uart_sd_logging_task(void* pvParameters)
 	char sd_card_buffer[LOGS_DATA_LEN];
 	static int temp_int, temp_frac, current_A_int, current_A_frac, power_W_int, power_W_frac, voltage_V_int, voltage_V_frac;
 
+	static char date_time[128];
 	static char temp_str[16];
 	static char electricity_str[64];
 	while(1)
 	{
 		log_msg = APP_STATE_Get_Data();
 		/* Cast float into integer to print easier*/
+		if(log_msg.dev_state & ERR_RTC)
+		{
+			snprintf(date_time, sizeof(date_time), "NaN");
+		}
+		else
+		{
+			snprintf(date_time, sizeof(date_time), "time: %02d.%02d.%04d %02d:%02d:%02d - %03d ms,"
+					, log_msg.date.Date, log_msg.date.Month, log_msg.date.Year + 2000, log_msg.time.Hours, log_msg.time.Minutes, log_msg.time.Seconds,
+					(int)( 1000 - ((((log_msg.time.SecondFraction - log_msg.time.SubSeconds) * 1000) / (log_msg.time.SecondFraction + 1)))));
+		}
 
 		if(log_msg.dev_state & ERR_TEMP_SENSOR)
 		{
@@ -237,8 +248,8 @@ static void uart_sd_logging_task(void* pvParameters)
 					current_sign_str, current_A_int, current_A_frac, power_sign_str, power_W_int, power_W_frac, voltage_sign_str, voltage_V_int, voltage_V_frac);
 		}
 
-		snprintf(sd_card_buffer, LOGS_DATA_LEN, "time: %lu, %s%s target_speed: %d, motor_speed: %d\n"
-							, HAL_GetTick(), temp_str, electricity_str, (int)log_msg.target_motor_speed, (int)log_msg.real_motor_speed);
+		snprintf(sd_card_buffer, LOGS_DATA_LEN, "%s%s%s target_speed: %d, motor_speed: %d\n"
+							, date_time, temp_str, electricity_str, (int)log_msg.target_motor_speed, (int)log_msg.real_motor_speed);
 		/* UART management */
 		{
 			DevStatus_t uart_state = OSAL_UART3_SendData(sd_card_buffer, strlen(sd_card_buffer));
