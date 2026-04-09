@@ -31,6 +31,18 @@ GlobalData_t APP_STATE_Get_Data(void)
 	return telemetry_copy;
 }
 
+/* Set date and time */
+void APP_STATE_Set_Date_Time(RTC_DateTypeDef date, RTC_TimeTypeDef time)
+{
+	if(xSemaphoreTake(m_telemetry, portMAX_DELAY) == pdTRUE)
+	{
+		GlobalTelemetry.date = date;
+		GlobalTelemetry.time = time;
+		xSemaphoreGive(m_telemetry);
+	}
+
+}
+
 /* Set peripherals state */
 void APP_STATE_Update_Error_BeforeRTOSStart(uint32_t error_flag, uint8_t is_active)
 {
@@ -83,16 +95,6 @@ void APP_STATE_Set_Motor_State(MororState_t motor_state)
 	if(xSemaphoreTake(m_telemetry, portMAX_DELAY) == pdTRUE)
 	{
 		GlobalTelemetry.motor_state = motor_state;
-
-		xSemaphoreGive(m_telemetry);
-	}
-}
-
-void APP_STATE_SET_Time(uint64_t time)
-{
-	if(xSemaphoreTake(m_telemetry, portMAX_DELAY) == pdTRUE)
-	{
-		GlobalTelemetry.time = time;
 
 		xSemaphoreGive(m_telemetry);
 	}

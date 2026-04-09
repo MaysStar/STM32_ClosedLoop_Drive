@@ -4,6 +4,7 @@
 /* BSP level include */
 #include "bsp_driver_uart.h"
 #include "bsp_driver_i2c.h"
+#include "bsp_driver_rtc.h"
 
 /* third party include */
 #include "FreeRTOS.h"
@@ -29,5 +30,6 @@ DevStatus_t OSAL_Init(void);
 DevStatus_t OSAL_UART3_SendData(char* tx_buffer, uint32_t len);
 SafeData_t OSAL_UART_1Wire_GetTemperature(void);
 Electricity_t OSAL_I2C1_GetElectricity(void);
+DevStatus_t OSAL_RTC_GetDataDateTime(RTC_DateTypeDef* pdate, RTC_TimeTypeDef* ptime);
 
 #endif /* OSAL_FREERTOS_H_ */

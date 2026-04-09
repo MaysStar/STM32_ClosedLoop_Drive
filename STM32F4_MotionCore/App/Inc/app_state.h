@@ -17,6 +17,8 @@
 #define ERR_POWER_SENSOR 	(1 << 2)
 #define ERR_SD_CARD_LOG 	(1 << 3)
 #define ERR_UART_LOG		(1 << 4)
+#define ERR_WATCHDOG		(1 << 5)
+#define ERR_RTC				(1 << 6)
 
 typedef enum
 {
@@ -26,7 +28,9 @@ typedef enum
 }MororState_t;
 
 typedef struct{
-	uint64_t time;
+	RTC_DateTypeDef date;
+	RTC_TimeTypeDef time;
+
 	float temp;
 	float current_A;
 	float power_W;
@@ -47,7 +51,7 @@ GlobalData_t APP_STATE_Get_Data(void);
 void APP_STATE_Update_Error_BeforeRTOSStart(uint32_t error_flag, uint8_t is_active);
 void APP_STATE_Update_Error(uint32_t error_flag, uint8_t is_active);
 
-void APP_STATE_SET_Time(uint64_t time);
+void APP_STATE_Set_Date_Time(RTC_DateTypeDef date, RTC_TimeTypeDef time);
 void APP_STATE_Set_Sensors(float temp, float current_A, float power_W, float voltage_v);
 void APP_STATE_Set_Motor_Values(float real_motor_speed, float target_motor_speed);
 void APP_STATE_Set_Motor_State(MororState_t motor_state);
