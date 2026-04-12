@@ -1,7 +1,7 @@
 #include "app_state.h"
 
 /* Global data and state of the program */
-static GlobalData_t GlobalTelemetry = {0};
+static volatile GlobalData_t GlobalTelemetry = {0};
 
 /* Mutex for safe use global data */
 static SemaphoreHandle_t m_telemetry = NULL;
@@ -11,6 +11,8 @@ void APP_STATE_Init(void)
 {
 	m_telemetry = xSemaphoreCreateMutex();
 	configASSERT(m_telemetry != NULL);
+
+	GlobalTelemetry.motor_state = MOTOR_RUN;
 }
 
 uint32_t APP_STATE_Get_State(void)
@@ -46,7 +48,7 @@ void APP_STATE_Set_Date_Time(RTC_DateTypeDef date, RTC_TimeTypeDef time)
 /* Set peripherals state */
 void APP_STATE_Update_Error_BeforeRTOSStart(uint32_t error_flag, uint8_t is_active)
 {
-	if (is_active) {
+	if (is_active == EER_ACTIVE) {
 		GlobalTelemetry.dev_state |= error_flag;
 	} else {
 		GlobalTelemetry.dev_state &= ~error_flag;
@@ -57,7 +59,7 @@ void APP_STATE_Update_Error(uint32_t error_flag, uint8_t is_active)
 {
 	if(xSemaphoreTake(m_telemetry, portMAX_DELAY) == pdTRUE)
 	{
-		if (is_active) {
+		if (is_active == EER_ACTIVE) {
 			GlobalTelemetry.dev_state |= error_flag;
 		} else {
 			GlobalTelemetry.dev_state &= ~error_flag;

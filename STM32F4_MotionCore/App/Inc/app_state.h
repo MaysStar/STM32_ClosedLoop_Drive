@@ -12,6 +12,9 @@
 #include "FreeRTOS.h"
 #include "semphr.h"
 
+#define EER_ACTIVE			0
+#define EER_NOT_ACTIVE		1
+
 #define ERR_OSAL_INIT 		(1 << 0)
 #define ERR_TEMP_SENSOR  	(1 << 1)
 #define ERR_POWER_SENSOR 	(1 << 2)
@@ -19,12 +22,14 @@
 #define ERR_UART_LOG		(1 << 4)
 #define ERR_WATCHDOG		(1 << 5)
 #define ERR_RTC				(1 << 6)
+#define ERR_TIM_PWM			(1 << 7)
 
 typedef enum
 {
 	MOTOR_RUN = 0,
 	MOTOR_STOP,
 	MOTOR_RECOVER,
+	MOTOR_FAULT_STOP
 }MororState_t;
 
 typedef struct{

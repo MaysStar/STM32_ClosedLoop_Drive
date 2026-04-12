@@ -642,6 +642,7 @@
 #define configUSE_QUEUE_SETS                   0
 #define configUSE_APPLICATION_TASK_TAG         0
 #define configUSE_16_BIT_TICKS				   0
+#define configUSE_FPU						   1
 
 /* USE_POSIX_ERRNO enables the task global FreeRTOS_errno variable which will
  * contain the most recent error for that task. */

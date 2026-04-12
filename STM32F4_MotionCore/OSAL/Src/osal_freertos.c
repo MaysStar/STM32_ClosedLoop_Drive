@@ -6,13 +6,14 @@ static TaskHandle_t curr_temp_task = NULL;
 static TaskHandle_t curr_electricity_task = NULL;
 static TaskHandle_t curr_housekeeping_task = NULL;
 
-static SemaphoreHandle_t m_uart2 = NULL;
 static SemaphoreHandle_t m_uart3 = NULL;
 static SemaphoreHandle_t m_uart4 = NULL;
 
 static SemaphoreHandle_t m_i2c1 = NULL;
 
 static SemaphoreHandle_t m_rtc = NULL;
+
+static SemaphoreHandle_t m_tim1 = NULL;
 
 /* Registered function for UART3 callback */
 static void UART3_TxCpltCallbak(void)
@@ -41,23 +42,6 @@ static void I2C1_TxRxCpltCallbak(void)
 	{
 		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 		vTaskNotifyGiveFromISR(curr_electricity_task, &xHigherPriorityTaskWoken);
-	}
-}
-
-/* UART2 take and give semaphore */
-static void UART2_MutexTake(void)
-{
-	if(m_uart2 != NULL)
-	{
-		xSemaphoreTake(m_uart2, portMAX_DELAY);
-	}
-}
-
-static void UART2_MutexGive(void)
-{
-	if(m_uart2 != NULL)
-	{
-		xSemaphoreGive(m_uart2);
 	}
 }
 
@@ -129,12 +113,26 @@ static void RTC_MutexGive(void)
 	}
 }
 
+/* TIM1 take and give semaphore */
+static void TIM1_MutexTake(void)
+{
+	if(m_tim1!= NULL)
+	{
+		xSemaphoreTake(m_tim1, portMAX_DELAY);
+	}
+}
+
+static void TIM1_MutexGive(void)
+{
+	if(m_tim1 != NULL)
+	{
+		xSemaphoreGive(m_tim1);
+	}
+}
+
 static void UART_RegisterMutexes(void)
 {
 	/* Create all UART Mutexes */
-	m_uart2 = xSemaphoreCreateMutex();
-	configASSERT(m_uart2 != NULL);
-
 	m_uart3 = xSemaphoreCreateMutex();
 	configASSERT(m_uart3 != NULL);
 
@@ -154,6 +152,13 @@ static void RTC_RegisterMutex(void)
 	/* Create all RTC Mutexes */
 	m_rtc = xSemaphoreCreateMutex();
 	configASSERT(m_rtc != NULL);
+}
+
+static void TIM_RegisterMutexes(void)
+{
+	/* Create all timers Mutexes */
+	m_tim1 = xSemaphoreCreateMutex();
+	configASSERT(m_tim1 != NULL);
 }
 
 /* Function for thread save data sending for tasks and that function guarantees UART DMA operation will be completed */
@@ -246,6 +251,7 @@ SafeData_t OSAL_UART_1Wire_GetTemperature(void)
 {
 	SafeData_t curr_temp;
 	curr_temp.data = 0.0f;
+	uint8_t command;
 
 	uint8_t	scratchpad_buffer[9];
 
@@ -260,14 +266,16 @@ SafeData_t OSAL_UART_1Wire_GetTemperature(void)
 		return curr_temp;
 	}
 
-	curr_temp.state = OSAL_UART_1Wire_Write(0xCC); /* Skip ROM */
+	command = BSP_1WIRE_SKIP_ROM;
+	curr_temp.state = OSAL_UART_1Wire_Write(command); /* Skip ROM */
 	if(curr_temp.state != DRV_OK)
 	{
 		UART4_MutexGive();
 		return curr_temp;
 	}
 
-	curr_temp.state = OSAL_UART_1Wire_Write(0x44); /* Issue “ Convert T” */
+	command = BSP_1WIRE_CONVERT_T;
+	curr_temp.state = OSAL_UART_1Wire_Write(command); /* Issue “ Convert T” */
 	if(curr_temp.state != DRV_OK)
 	{
 		UART4_MutexGive();
@@ -285,14 +293,16 @@ SafeData_t OSAL_UART_1Wire_GetTemperature(void)
 		return curr_temp;
 	}
 
-	curr_temp.state  = OSAL_UART_1Wire_Write(0xCC); /* Skip ROM */
+	command = BSP_1WIRE_SKIP_ROM;
+	curr_temp.state  = OSAL_UART_1Wire_Write(command); /* Skip ROM */
 	if(curr_temp.state != DRV_OK)
 	{
 		UART4_MutexGive();
 		return curr_temp;
 	}
 
-	curr_temp.state = OSAL_UART_1Wire_Write(0xBE); /* Issue “Read Scratchpad” */
+	command = BSP_1WIRE_READ_SCRATCHPAD;
+	curr_temp.state = OSAL_UART_1Wire_Write(command); /* Issue “Read Scratchpad” */
 	if(curr_temp.state != DRV_OK)
 	{
 		UART4_MutexGive();
@@ -474,6 +484,18 @@ DevStatus_t OSAL_RTC_GetDataDateTime(RTC_DateTypeDef* pdate, RTC_TimeTypeDef* pt
 	return ret;
 }
 
+/* Set PWM and motor state */
+DevStatus_t OSAL_TIM1_ChangePWM_State(float pwm_percent, uint8_t MOTOR_STATE)
+{
+	TIM1_MutexTake();
+
+	DevStatus_t ret = BSP_TIM1_ChangePWM_State(pwm_percent, MOTOR_STATE);
+
+	TIM1_MutexGive();
+
+	return ret;
+}
+
 DevStatus_t OSAL_Init(void)
 {
 	/* Registration callback function */
@@ -501,6 +523,7 @@ DevStatus_t OSAL_Init(void)
 	UART_RegisterMutexes();
 	I2C_RegisterMutexes();
 	RTC_RegisterMutex();
+	TIM_RegisterMutexes();
 
 	return ret;
 }
