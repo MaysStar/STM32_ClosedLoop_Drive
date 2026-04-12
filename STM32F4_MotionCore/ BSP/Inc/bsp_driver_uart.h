@@ -7,6 +7,12 @@
 #include <bsp_common.h>
 #include "stm32f4xx_hal.h"
 
+#define BSP_1WIRE_SKIP_ROM	0xCC
+#define BSP_1WIRE_READ_SCRATCHPAD 0xBE
+#define BSP_1WIRE_WRITE_SCRATCHPAD 0x4E
+#define BSP_1WIRE_COPY_SCRATCHPAD 0x48
+#define BSP_1WIRE_CONVERT_T 0x44
+
 typedef struct
 {
 	uint8_t data;

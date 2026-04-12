@@ -258,6 +258,8 @@ uint8_t BSP_UART_1WireDS18B20_CalculateCRC(uint8_t* data, uint32_t len)
 DevStatus_t BSP_UART_1WireDS18B20_Init(UART_HandleTypeDef* huart4)
 {
 	DevStatus_t ret;
+	uint8_t command;
+
 	if(huart4 == NULL)
 	{
 		return DRV_INIT_NEEDED;
@@ -272,13 +274,15 @@ DevStatus_t BSP_UART_1WireDS18B20_Init(UART_HandleTypeDef* huart4)
 		return DRV_INIT_NEEDED;
 	}
 
-	ret = BSP_UART_1WireDS18B20_InitWrite(0xCC); /* Skip ROM */
+	command = BSP_1WIRE_SKIP_ROM;
+	ret = BSP_UART_1WireDS18B20_InitWrite(command); /* Skip ROM */
 	if(ret != DRV_OK)
 	{
 		return DRV_INIT_NEEDED;
 	}
 
-	ret = BSP_UART_1WireDS18B20_InitWrite(0xBE); /* Read Scratchpad */
+	command = BSP_1WIRE_READ_SCRATCHPAD;
+	ret = BSP_UART_1WireDS18B20_InitWrite(command); /* Read Scratchpad */
 	if(ret != DRV_OK)
 	{
 		return DRV_INIT_NEEDED;
@@ -304,13 +308,15 @@ DevStatus_t BSP_UART_1WireDS18B20_Init(UART_HandleTypeDef* huart4)
 		return DRV_INIT_NEEDED;
 	}
 
-	ret = BSP_UART_1WireDS18B20_InitWrite(0xCC); /* Skip ROM */
+	command = BSP_1WIRE_SKIP_ROM;
+	ret = BSP_UART_1WireDS18B20_InitWrite(command); /* Skip ROM */
 	if(ret != DRV_OK)
 	{
 		return DRV_INIT_NEEDED;
 	}
 
-	ret = BSP_UART_1WireDS18B20_InitWrite(0x4E); /* Write Scratchpad */
+	command = BSP_1WIRE_WRITE_SCRATCHPAD;
+	ret = BSP_UART_1WireDS18B20_InitWrite(command); /* Write Scratchpad */
 	if(ret != DRV_OK)
 	{
 		return DRV_INIT_NEEDED;
@@ -332,13 +338,15 @@ DevStatus_t BSP_UART_1WireDS18B20_Init(UART_HandleTypeDef* huart4)
 	}
 	/*Skip first data check CRC */
 
-	ret = BSP_UART_1WireDS18B20_InitWrite(0xCC); /* Skip ROM */
+	command = BSP_1WIRE_SKIP_ROM;
+	ret = BSP_UART_1WireDS18B20_InitWrite(command); /* Skip ROM */
 	if(ret != DRV_OK)
 	{
 		return DRV_INIT_NEEDED;
 	}
 
-	ret = BSP_UART_1WireDS18B20_InitWrite(0x48); /* Copy Scratchpad */
+	command = BSP_1WIRE_COPY_SCRATCHPAD;
+	ret = BSP_UART_1WireDS18B20_InitWrite(command); /* Copy Scratchpad */
 	if(ret != DRV_OK)
 	{
 		return DRV_INIT_NEEDED;

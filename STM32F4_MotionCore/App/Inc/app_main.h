@@ -1,5 +1,5 @@
-#ifndef APP_MAIN_H_
-#define APP_MAIN_H_
+#ifndef APP_MAIN_H
+#define APP_MAIN_H
 
 /* OSAL level include */
 #include "osal_freertos.h"
@@ -14,6 +14,8 @@
 #include <app_sensors.h>
 #include <app_housekeeping.h>
 #include <app_state.h>
+#include <app_motor_control.h>
+#include <app_motor_safety_user_control.h>
 
 #include "SEGGER_SYSVIEW.h"
 
@@ -30,10 +32,11 @@ typedef struct
 	I2C_HandleTypeDef* phi2c1;
 	IWDG_HandleTypeDef* phiwdg;
 	RTC_HandleTypeDef* prtc;
+	TIM_HandleTypeDef* ptim1;
 } AppHardwareConfig_t;
 
 #include "main.h"
 
 void APP_Main(AppHardwareConfig_t* app_hw);
 
-#endif /* APP_MAIN_H_ */
+#endif /* APP_MAIN_H */
