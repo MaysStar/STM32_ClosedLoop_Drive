@@ -1,4 +1,4 @@
-#include "bsp_driver_i2c.h"
+#include <bsp_driver_ina219.h>
 
 /* private variables for i2c driver */
 typedef void (*I2C_TxRxCpltCallbak)(void);
@@ -11,7 +11,7 @@ static uint8_t pow_reg[2];
 static uint8_t volt_reg[2];
 
 /* Initialize I2C for driver and set 12-bit resolution for INA219 */
-DevStatus_t BSP_I2C_Init(I2C_HandleTypeDef* hi2c1)
+DevStatus_t BSP_INA219_Init(I2C_HandleTypeDef* hi2c1)
 {
 	if(hi2c1 == NULL)
 	{
@@ -24,7 +24,7 @@ DevStatus_t BSP_I2C_Init(I2C_HandleTypeDef* hi2c1)
 	cal_reg[0] = 0x10;
 	cal_reg[1] = 0x00;
 
-	DevStatus_t ret = (DevStatus_t)HAL_I2C_Mem_Write(local_pi2c1, (BSP_I2C_INA219_ADDR << 1), INA219_REG_CALIBRATION, 1, cal_reg, 2, 100);
+	DevStatus_t ret = (DevStatus_t)HAL_I2C_Mem_Write(local_pi2c1, (BSP_INA219_ADDR << 1), INA219_REG_CALIBRATION, 1, cal_reg, 2, 100);
 
 	if(ret != DRV_OK)
 	{
@@ -36,7 +36,7 @@ DevStatus_t BSP_I2C_Init(I2C_HandleTypeDef* hi2c1)
 	conf_reg[0] = 0x3E;
 	conf_reg[1] = 0xEF;
 
-	ret = (DevStatus_t)HAL_I2C_Mem_Write(local_pi2c1, (BSP_I2C_INA219_ADDR << 1), INA219_REG_CONFIG, 1, conf_reg, 2, 100);
+	ret = (DevStatus_t)HAL_I2C_Mem_Write(local_pi2c1, (BSP_INA219_ADDR << 1), INA219_REG_CONFIG, 1, conf_reg, 2, 100);
 
 	if(ret != DRV_OK)
 	{
@@ -47,14 +47,14 @@ DevStatus_t BSP_I2C_Init(I2C_HandleTypeDef* hi2c1)
 }
 
 /* Read current from INA219 */
-DevStatus_t BSP_I2C_ReadCurrent(void)
+DevStatus_t BSP_INA219_ReadCurrent(void)
 {
 	/* Read current register */
-	return (DevStatus_t)HAL_I2C_Mem_Read_DMA(local_pi2c1, (BSP_I2C_INA219_ADDR << 1), INA219_REG_CURRENT, 1, curr_reg, 2);
+	return (DevStatus_t)HAL_I2C_Mem_Read_DMA(local_pi2c1, (BSP_INA219_ADDR << 1), INA219_REG_CURRENT, 1, curr_reg, 2);
 }
 
 /* Get current */
-float BSP_I2C_GetCurrent(void)
+float BSP_INA219_GetCurrent(void)
 {
 	int16_t raw_current = (int16_t)((curr_reg[0] << 8) | curr_reg[1]);
 
@@ -67,14 +67,14 @@ float BSP_I2C_GetCurrent(void)
 }
 
 /* Read power from INA219*/
-DevStatus_t BSP_I2C_ReadPower(void)
+DevStatus_t BSP_INA219_ReadPower(void)
 {
 	/* Read power register */
-	return (DevStatus_t)HAL_I2C_Mem_Read_DMA(local_pi2c1, (BSP_I2C_INA219_ADDR << 1), INA219_REG_POWER, 1, pow_reg, 2);
+	return (DevStatus_t)HAL_I2C_Mem_Read_DMA(local_pi2c1, (BSP_INA219_ADDR << 1), INA219_REG_POWER, 1, pow_reg, 2);
 }
 
 /* Get power*/
-float BSP_I2C_GetPower(void)
+float BSP_INA219_GetPower(void)
 {
 	int16_t raw_power = (int16_t)((pow_reg[0] << 8) | pow_reg[1]);
 
@@ -88,14 +88,14 @@ float BSP_I2C_GetPower(void)
 }
 
 /* Read voltage from INA219 */
-DevStatus_t BSP_I2C_ReadVoltage(void)
+DevStatus_t BSP_INA219_ReadVoltage(void)
 {
 	/* Read voltage register */
-	return (DevStatus_t)HAL_I2C_Mem_Read_DMA(local_pi2c1, (BSP_I2C_INA219_ADDR << 1), INA219_REG_BUSVOLT, 1, volt_reg, 2);
+	return (DevStatus_t)HAL_I2C_Mem_Read_DMA(local_pi2c1, (BSP_INA219_ADDR << 1), INA219_REG_BUSVOLT, 1, volt_reg, 2);
 }
 
 /* Get voltage */
-float BSP_I2C_GetVoltage(void)
+float BSP_INA219_GetVoltage(void)
 {
 	int16_t raw_voltage = (int16_t)((volt_reg[0] << 8) | volt_reg[1]);
 
@@ -110,7 +110,7 @@ float BSP_I2C_GetVoltage(void)
 }
 
 /* Register callback functions */
-DevStatus_t BSP_I2C1_RegisterRxCpltCallbak(void (*callback_fun)(void))
+DevStatus_t BSP_INA219_RegisterRxCpltCallbak(void (*callback_fun)(void))
 {
 	if(callback_fun == NULL)
 	{

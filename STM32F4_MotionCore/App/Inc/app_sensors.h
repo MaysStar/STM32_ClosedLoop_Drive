@@ -3,10 +3,8 @@
 
 /* BSP level includes */
 #include "stm32f4xx_hal.h"
-#include "bsp_driver_uart.h"
-
-/* OSAL level include */
 #include "osal_freertos.h"
+#include <bsp_driver_ds18b20.h>
 
 /* third party includes */
 #include "FreeRTOS.h"

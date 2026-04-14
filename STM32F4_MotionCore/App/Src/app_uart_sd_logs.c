@@ -47,7 +47,7 @@ static SDRESULT APP_SD_Mount(void)
 }
 
 /* Function for initialization SD and prepare to logs UART */
-void APP_LOGS_Init(SD_HandleTypeDef* phsd, UART_HandleTypeDef* phuart2, UART_HandleTypeDef* phuart3)
+void APP_LOGS_Init(SD_HandleTypeDef* phsd, UART_HandleTypeDef* phuart3)
 {
 	APP_STATE_Update_Error_BeforeRTOSStart(ERR_SD_CARD_LOG, EER_NOT_ACTIVE);
 	APP_STATE_Update_Error_BeforeRTOSStart(ERR_UART_LOG, EER_ACTIVE);
@@ -56,8 +56,17 @@ void APP_LOGS_Init(SD_HandleTypeDef* phsd, UART_HandleTypeDef* phuart2, UART_Han
 
 	for(uint32_t i = 0; i < 3; ++i)
 	{
+<<<<<<< Updated upstream
 		if(BSP_UART_Init(phuart2, phuart3) == DRV_OK){
+<<<<<<< HEAD
 			APP_STATE_Update_Error_BeforeRTOSStart(ERR_UART_LOG, EER_NOT_ACTIVE);
+=======
+			APP_STATE_Update_Error_BeforeRTOSStart(ERR_UART_LOG, 0);
+=======
+		if(BSP_UART_LOG_Init(phuart3) == DRV_OK){
+			APP_STATE_Update_Error_BeforeRTOSStart(ERR_UART_LOG, EER_NOT_ACTIVE);
+>>>>>>> Stashed changes
+>>>>>>> 0e76a80 (refactor: improve BSP architecture layer)
 			break;
 		}
 	}
@@ -252,7 +261,7 @@ static void uart_sd_logging_task(void* pvParameters)
 							, date_time, temp_str, electricity_str, (int)log_msg.target_motor_speed, (int)log_msg.real_motor_speed);
 		/* UART management */
 		{
-			DevStatus_t uart_state = OSAL_UART3_SendData(sd_card_buffer, strlen(sd_card_buffer));
+			DevStatus_t uart_state = OSAL_UART_LOG_SendData(sd_card_buffer, strlen(sd_card_buffer));
 			if(uart_state != DRV_OK)
 			{
 				APP_STATE_Update_Error(ERR_UART_LOG, EER_ACTIVE);

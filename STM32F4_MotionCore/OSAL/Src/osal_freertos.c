@@ -162,7 +162,7 @@ static void TIM_RegisterMutexes(void)
 }
 
 /* Function for thread save data sending for tasks and that function guarantees UART DMA operation will be completed */
-DevStatus_t OSAL_UART3_SendData(char* tx_buffer, uint32_t len)
+DevStatus_t OSAL_UART_LOG_SendData(char* tx_buffer, uint32_t len)
 {
 	DevStatus_t ret;
 
@@ -179,7 +179,7 @@ DevStatus_t OSAL_UART3_SendData(char* tx_buffer, uint32_t len)
 	/* Clear all possible old notification */
 	ulTaskNotifyTake(pdTRUE, 0);
 
-	ret = BSP_UART3_SendData(tx_buffer, len);
+	ret = BSP_UART_LOG_SendData(tx_buffer, len);
 	if(ret != DRV_OK)
 	{
 		UART3_MutexGive();
@@ -202,12 +202,12 @@ DevStatus_t OSAL_UART3_SendData(char* tx_buffer, uint32_t len)
 }
 
 /* Helper function for Write and Read from DS18B20 sensor */
-static DevStatus_t OSAL_UART_1Wire_Write(uint8_t data)
+static DevStatus_t OSAL_DS18B20_Write(uint8_t data)
 {
 	/* Clear old notifications */
 	ulTaskNotifyTake(pdTRUE, 0);
 
-	DevStatus_t ret = BSP_UART_1WireDS18B20_Write(data);
+	DevStatus_t ret = BSP_DS18B20_Write(data);
 	if(ret != DRV_OK)
 	{
 		return ret;
@@ -221,15 +221,15 @@ static DevStatus_t OSAL_UART_1Wire_Write(uint8_t data)
 	return ret;
 }
 
-static OneWireReadStatus_t OSAL_UART_1Wire_Read(void)
+static DS18B20_ReadStatus_t OSAL_DS18B20_Read(void)
 {
-	OneWireReadStatus_t ret;
+	DS18B20_ReadStatus_t ret;
 	ret.data = 0;
 	/* Clear old notifications */
 	ulTaskNotifyTake(pdTRUE, 0);
 
 	/* Wait until Transmission and receiving end */
-	ret.state = BSP_UART_1WireDS18B20_ReadStart();
+	ret.state = BSP_DS18B20_ReadStart();
 	if(ret.state != DRV_OK)
 	{
 		return ret;
@@ -242,12 +242,12 @@ static OneWireReadStatus_t OSAL_UART_1Wire_Read(void)
 	}
 
 	/* Get data */
-	ret.data = BSP_UART_1WireDS18B20_ReadEnd();
+	ret.data = BSP_DS18B20_ReadEnd();
 	return ret;
 }
 
 /* Function for thread save data transmission and receiving for tasks. The function guarantees UART DMA operation will be completed */
-SafeData_t OSAL_UART_1Wire_GetTemperature(void)
+SafeData_t OSAL_DS18B20_GetTemperature(void)
 {
 	SafeData_t curr_temp;
 	curr_temp.data = 0.0f;
@@ -259,23 +259,41 @@ SafeData_t OSAL_UART_1Wire_GetTemperature(void)
 	UART4_MutexTake();
 	curr_temp_task = xTaskGetCurrentTaskHandle();
 
-	curr_temp.state = BSP_UART_1WireDS18B20_ResetPresence();
+	curr_temp.state = BSP_DS18B20_ResetPresence();
 	if(curr_temp.state != DRV_OK)
 	{
 		UART4_MutexGive();
 		return curr_temp;
 	}
 
+<<<<<<< HEAD
 	command = BSP_1WIRE_SKIP_ROM;
 	curr_temp.state = OSAL_UART_1Wire_Write(command); /* Skip ROM */
+=======
+<<<<<<< Updated upstream
+	curr_temp.state = OSAL_UART_1Wire_Write(0xCC); /* Skip ROM */
+=======
+	command = BSP_DS18B20_SKIP_ROM;
+	curr_temp.state = OSAL_DS18B20_Write(command); /* Skip ROM */
+>>>>>>> Stashed changes
+>>>>>>> 0e76a80 (refactor: improve BSP architecture layer)
 	if(curr_temp.state != DRV_OK)
 	{
 		UART4_MutexGive();
 		return curr_temp;
 	}
 
+<<<<<<< HEAD
 	command = BSP_1WIRE_CONVERT_T;
 	curr_temp.state = OSAL_UART_1Wire_Write(command); /* Issue “ Convert T” */
+=======
+<<<<<<< Updated upstream
+	curr_temp.state = OSAL_UART_1Wire_Write(0x44); /* Issue “ Convert T” */
+=======
+	command = BSP_DS18B20_CONVERT_T;
+	curr_temp.state = OSAL_DS18B20_Write(command); /* Issue “ Convert T” */
+>>>>>>> Stashed changes
+>>>>>>> 0e76a80 (refactor: improve BSP architecture layer)
 	if(curr_temp.state != DRV_OK)
 	{
 		UART4_MutexGive();
@@ -286,23 +304,41 @@ SafeData_t OSAL_UART_1Wire_GetTemperature(void)
 	vTaskDelay(pdMS_TO_TICKS(100));
 
 	/* New operation read Scratchpad */
-	curr_temp.state = BSP_UART_1WireDS18B20_ResetPresence();
+	curr_temp.state = BSP_DS18B20_ResetPresence();
 	if(curr_temp.state != DRV_OK)
 	{
 		UART4_MutexGive();
 		return curr_temp;
 	}
 
+<<<<<<< HEAD
 	command = BSP_1WIRE_SKIP_ROM;
 	curr_temp.state  = OSAL_UART_1Wire_Write(command); /* Skip ROM */
+=======
+<<<<<<< Updated upstream
+	curr_temp.state  = OSAL_UART_1Wire_Write(0xCC); /* Skip ROM */
+=======
+	command = BSP_DS18B20_SKIP_ROM;
+	curr_temp.state  = OSAL_DS18B20_Write(command); /* Skip ROM */
+>>>>>>> Stashed changes
+>>>>>>> 0e76a80 (refactor: improve BSP architecture layer)
 	if(curr_temp.state != DRV_OK)
 	{
 		UART4_MutexGive();
 		return curr_temp;
 	}
 
+<<<<<<< HEAD
 	command = BSP_1WIRE_READ_SCRATCHPAD;
 	curr_temp.state = OSAL_UART_1Wire_Write(command); /* Issue “Read Scratchpad” */
+=======
+<<<<<<< Updated upstream
+	curr_temp.state = OSAL_UART_1Wire_Write(0xBE); /* Issue “Read Scratchpad” */
+=======
+	command = BSP_DS18B20_READ_SCRATCHPAD;
+	curr_temp.state = OSAL_DS18B20_Write(command); /* Issue “Read Scratchpad” */
+>>>>>>> Stashed changes
+>>>>>>> 0e76a80 (refactor: improve BSP architecture layer)
 	if(curr_temp.state != DRV_OK)
 	{
 		UART4_MutexGive();
@@ -311,7 +347,7 @@ SafeData_t OSAL_UART_1Wire_GetTemperature(void)
 
 	for(uint32_t i = 0; i < 9; ++i)
 	{
-		OneWireReadStatus_t temp_read = OSAL_UART_1Wire_Read();
+		DS18B20_ReadStatus_t temp_read = OSAL_DS18B20_Read();
 		if(temp_read.state != DRV_OK)
 		{
 			curr_temp.state = temp_read.state;
@@ -322,14 +358,14 @@ SafeData_t OSAL_UART_1Wire_GetTemperature(void)
 	}
 
 	/* End all operation */
-	curr_temp.state = BSP_UART_1WireDS18B20_ResetPresence();
+	curr_temp.state = BSP_DS18B20_ResetPresence();
 	if(curr_temp.state != DRV_OK)
 	{
 		UART4_MutexGive();
 		return curr_temp;
 	}
 
-	if(BSP_UART_1WireDS18B20_CalculateCRC(scratchpad_buffer, 8) != scratchpad_buffer[8])
+	if(BSP_DS18B20_CalculateCRC(scratchpad_buffer, 8) != scratchpad_buffer[8])
 	{
 		curr_temp.state = DRV_ERROR;
 		UART4_MutexGive();
@@ -346,13 +382,13 @@ SafeData_t OSAL_UART_1Wire_GetTemperature(void)
 }
 
 /* Function for thread save get current */
-static SafeData_t OSAL_I2C_GetCurrent(void)
+static SafeData_t OSAL_INA219_GetCurrent(void)
 {
 	SafeData_t ret;
 	ret.data = 0.0f;
 	/* Clear old notifications */
 	ulTaskNotifyTake(pdTRUE, 0);
-	ret.state = BSP_I2C_ReadCurrent();
+	ret.state = BSP_INA219_ReadCurrent();
 	if(ret.state != DRV_OK)
 	{
 		return ret;
@@ -365,19 +401,19 @@ static SafeData_t OSAL_I2C_GetCurrent(void)
 		return ret;
 	}
 
-	ret.data = BSP_I2C_GetCurrent();
+	ret.data = BSP_INA219_GetCurrent();
 	return ret;
 }
 
 /* Function for thread save get power */
-static SafeData_t OSAL_I2C_GetPower(void)
+static SafeData_t OSAL_INA219_GetPower(void)
 {
 	SafeData_t ret;
 	ret.data = 0.0f;
 
 	/* Clear old notifications */
 	ulTaskNotifyTake(pdTRUE, 0);
-	ret.state = BSP_I2C_ReadPower();
+	ret.state = BSP_INA219_ReadPower();
 	if(ret.state != DRV_OK)
 	{
 		return ret;
@@ -390,19 +426,19 @@ static SafeData_t OSAL_I2C_GetPower(void)
 		return ret;
 	}
 
-	ret.data = BSP_I2C_GetPower();
+	ret.data = BSP_INA219_GetPower();
 	return ret;
 }
 
 /* Function for thread save get voltage */
-static SafeData_t OSAL_I2C_GetVoltage(void)
+static SafeData_t OSAL_INA219_GetVoltage(void)
 {
 	SafeData_t ret;
 	ret.data = 0.0f;
 
 	/* Clear old notifications */
 	ulTaskNotifyTake(pdTRUE, 0);
-	ret.state = BSP_I2C_ReadVoltage();
+	ret.state = BSP_INA219_ReadVoltage();
 	if(ret.state != DRV_OK)
 	{
 		return ret;
@@ -415,12 +451,12 @@ static SafeData_t OSAL_I2C_GetVoltage(void)
 		return ret;
 	}
 
-	ret.data = BSP_I2C_GetVoltage();
+	ret.data = BSP_INA219_GetVoltage();
 	return ret;
 }
 
 /* Function for thread save data receiving for tasks. The function guarantees I2C DMA operation will be completed */
-Electricity_t OSAL_I2C1_GetElectricity(void)
+Electricity_t OSAL_INA219_GetElectricity(void)
 {
 	vTaskDelay(pdMS_TO_TICKS(1));
 	Electricity_t measurement;
@@ -430,7 +466,7 @@ Electricity_t OSAL_I2C1_GetElectricity(void)
 	I2C1_MutexTake();
 	curr_electricity_task = xTaskGetCurrentTaskHandle();
 
-	res = OSAL_I2C_GetCurrent();
+	res = OSAL_INA219_GetCurrent();
 	if(res.state != DRV_OK)
 	{
 		measurement.state = res.state;
@@ -439,7 +475,7 @@ Electricity_t OSAL_I2C1_GetElectricity(void)
 	}
 	measurement.current_A = res.data;
 
-	res = OSAL_I2C_GetPower();
+	res = OSAL_INA219_GetPower();
 	if(res.state != DRV_OK)
 	{
 		measurement.state = res.state;
@@ -448,7 +484,7 @@ Electricity_t OSAL_I2C1_GetElectricity(void)
 	}
 	measurement.power_W = res.data;
 
-	res = OSAL_I2C_GetVoltage();
+	res = OSAL_INA219_GetVoltage();
 	if(res.state != DRV_OK)
 	{
 		measurement.state = res.state;
@@ -466,6 +502,11 @@ Electricity_t OSAL_I2C1_GetElectricity(void)
 	return measurement;
 }
 
+<<<<<<< HEAD
+=======
+<<<<<<< Updated upstream
+=======
+>>>>>>> 0e76a80 (refactor: improve BSP architecture layer)
 /* Function for thread save data get for tasks. The function guarantees RTC operation will be completed */
 DevStatus_t OSAL_RTC_GetDataDateTime(RTC_DateTypeDef* pdate, RTC_TimeTypeDef* ptime)
 {
@@ -485,33 +526,45 @@ DevStatus_t OSAL_RTC_GetDataDateTime(RTC_DateTypeDef* pdate, RTC_TimeTypeDef* pt
 }
 
 /* Set PWM and motor state */
+<<<<<<< HEAD
 DevStatus_t OSAL_TIM1_ChangePWM_State(float pwm_percent, uint8_t MOTOR_STATE)
 {
 	TIM1_MutexTake();
 
 	DevStatus_t ret = BSP_TIM1_ChangePWM_State(pwm_percent, MOTOR_STATE);
+=======
+DevStatus_t OSAL_MOTOR_ChangePWM_State(float pwm_percent, uint8_t MOTOR_STATE)
+{
+	TIM1_MutexTake();
+
+	DevStatus_t ret = BSP_MOTOR_ChangePWM_State(pwm_percent, MOTOR_STATE);
+>>>>>>> 0e76a80 (refactor: improve BSP architecture layer)
 
 	TIM1_MutexGive();
 
 	return ret;
 }
 
+<<<<<<< HEAD
+=======
+>>>>>>> Stashed changes
+>>>>>>> 0e76a80 (refactor: improve BSP architecture layer)
 DevStatus_t OSAL_Init(void)
 {
 	/* Registration callback function */
-	DevStatus_t ret = BSP_UART3_RegisterTxCpltCallbak(UART3_TxCpltCallbak);
+	DevStatus_t ret = BSP_UART_LOG_RegisterTxCpltCallbak(UART3_TxCpltCallbak);
 	if(ret != DRV_OK)
 	{
 		return ret;
 	}
 
-	ret = BSP_UART_1Wire_RegisterRxCpltCallbak(UART4_TxRxCpltCallbak);
+	ret = BSP_DS18B20_RegisterRxCpltCallbak(UART4_TxRxCpltCallbak);
 	if(ret != DRV_OK)
 	{
 		return ret;
 	}
 
-	ret = BSP_I2C1_RegisterRxCpltCallbak(I2C1_TxRxCpltCallbak);
+	ret = BSP_INA219_RegisterRxCpltCallbak(I2C1_TxRxCpltCallbak);
 	if(ret != DRV_OK)
 	{
 		return ret;

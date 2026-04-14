@@ -3,7 +3,6 @@
 
 /* BSP level includes */
 #include "stm32f4xx_hal.h"
-#include <bsp_driver_uart.h>
 #include "bsp_driver_sd.h"
 
 /* OSAL level include */
@@ -17,6 +16,7 @@
 
 /* APP level include*/
 #include <app_state.h>
+#include <bsp_driver_uart_log.h>
 
 /* std includes */
 #include "string.h"
@@ -32,6 +32,6 @@
 
 typedef FRESULT SDRESULT;
 
-void APP_LOGS_Init(SD_HandleTypeDef* phsd, UART_HandleTypeDef* phuart2, UART_HandleTypeDef* phuart3);
+void APP_LOGS_Init(SD_HandleTypeDef* phsd, UART_HandleTypeDef* phuart3);
 
 #endif // APP_UART_SD_LOGS_H
