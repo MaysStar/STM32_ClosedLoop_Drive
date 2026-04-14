@@ -266,34 +266,18 @@ SafeData_t OSAL_DS18B20_GetTemperature(void)
 		return curr_temp;
 	}
 
-<<<<<<< HEAD
-	command = BSP_1WIRE_SKIP_ROM;
-	curr_temp.state = OSAL_UART_1Wire_Write(command); /* Skip ROM */
-=======
-<<<<<<< Updated upstream
-	curr_temp.state = OSAL_UART_1Wire_Write(0xCC); /* Skip ROM */
-=======
 	command = BSP_DS18B20_SKIP_ROM;
 	curr_temp.state = OSAL_DS18B20_Write(command); /* Skip ROM */
->>>>>>> Stashed changes
->>>>>>> 0e76a80 (refactor: improve BSP architecture layer)
+
 	if(curr_temp.state != DRV_OK)
 	{
 		UART4_MutexGive();
 		return curr_temp;
 	}
 
-<<<<<<< HEAD
-	command = BSP_1WIRE_CONVERT_T;
-	curr_temp.state = OSAL_UART_1Wire_Write(command); /* Issue “ Convert T” */
-=======
-<<<<<<< Updated upstream
-	curr_temp.state = OSAL_UART_1Wire_Write(0x44); /* Issue “ Convert T” */
-=======
 	command = BSP_DS18B20_CONVERT_T;
 	curr_temp.state = OSAL_DS18B20_Write(command); /* Issue “ Convert T” */
->>>>>>> Stashed changes
->>>>>>> 0e76a80 (refactor: improve BSP architecture layer)
+
 	if(curr_temp.state != DRV_OK)
 	{
 		UART4_MutexGive();
@@ -311,34 +295,18 @@ SafeData_t OSAL_DS18B20_GetTemperature(void)
 		return curr_temp;
 	}
 
-<<<<<<< HEAD
-	command = BSP_1WIRE_SKIP_ROM;
-	curr_temp.state  = OSAL_UART_1Wire_Write(command); /* Skip ROM */
-=======
-<<<<<<< Updated upstream
-	curr_temp.state  = OSAL_UART_1Wire_Write(0xCC); /* Skip ROM */
-=======
 	command = BSP_DS18B20_SKIP_ROM;
 	curr_temp.state  = OSAL_DS18B20_Write(command); /* Skip ROM */
->>>>>>> Stashed changes
->>>>>>> 0e76a80 (refactor: improve BSP architecture layer)
+
 	if(curr_temp.state != DRV_OK)
 	{
 		UART4_MutexGive();
 		return curr_temp;
 	}
 
-<<<<<<< HEAD
-	command = BSP_1WIRE_READ_SCRATCHPAD;
-	curr_temp.state = OSAL_UART_1Wire_Write(command); /* Issue “Read Scratchpad” */
-=======
-<<<<<<< Updated upstream
-	curr_temp.state = OSAL_UART_1Wire_Write(0xBE); /* Issue “Read Scratchpad” */
-=======
 	command = BSP_DS18B20_READ_SCRATCHPAD;
 	curr_temp.state = OSAL_DS18B20_Write(command); /* Issue “Read Scratchpad” */
->>>>>>> Stashed changes
->>>>>>> 0e76a80 (refactor: improve BSP architecture layer)
+
 	if(curr_temp.state != DRV_OK)
 	{
 		UART4_MutexGive();
@@ -502,11 +470,6 @@ Electricity_t OSAL_INA219_GetElectricity(void)
 	return measurement;
 }
 
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-=======
->>>>>>> 0e76a80 (refactor: improve BSP architecture layer)
 /* Function for thread save data get for tasks. The function guarantees RTC operation will be completed */
 DevStatus_t OSAL_RTC_GetDataDateTime(RTC_DateTypeDef* pdate, RTC_TimeTypeDef* ptime)
 {
@@ -526,29 +489,17 @@ DevStatus_t OSAL_RTC_GetDataDateTime(RTC_DateTypeDef* pdate, RTC_TimeTypeDef* pt
 }
 
 /* Set PWM and motor state */
-<<<<<<< HEAD
-DevStatus_t OSAL_TIM1_ChangePWM_State(float pwm_percent, uint8_t MOTOR_STATE)
-{
-	TIM1_MutexTake();
-
-	DevStatus_t ret = BSP_TIM1_ChangePWM_State(pwm_percent, MOTOR_STATE);
-=======
 DevStatus_t OSAL_MOTOR_ChangePWM_State(float pwm_percent, uint8_t MOTOR_STATE)
 {
 	TIM1_MutexTake();
 
 	DevStatus_t ret = BSP_MOTOR_ChangePWM_State(pwm_percent, MOTOR_STATE);
->>>>>>> 0e76a80 (refactor: improve BSP architecture layer)
 
 	TIM1_MutexGive();
 
 	return ret;
 }
 
-<<<<<<< HEAD
-=======
->>>>>>> Stashed changes
->>>>>>> 0e76a80 (refactor: improve BSP architecture layer)
 DevStatus_t OSAL_Init(void)
 {
 	/* Registration callback function */

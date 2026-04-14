@@ -25,8 +25,6 @@ static SDRESULT APP_SD_Send_Logs(char* text, uint32_t len);
 static TaskHandle_t uart_sd_logging_handle = NULL;
 static void uart_sd_logging_task(void* pvParameters);
 
-
-
 DWORD get_fattime(void) {
     return  ((DWORD)(2026 - 1980) << 25) |
             ((DWORD)1 << 21) |
@@ -56,17 +54,8 @@ void APP_LOGS_Init(SD_HandleTypeDef* phsd, UART_HandleTypeDef* phuart3)
 
 	for(uint32_t i = 0; i < 3; ++i)
 	{
-<<<<<<< Updated upstream
-		if(BSP_UART_Init(phuart2, phuart3) == DRV_OK){
-<<<<<<< HEAD
-			APP_STATE_Update_Error_BeforeRTOSStart(ERR_UART_LOG, EER_NOT_ACTIVE);
-=======
-			APP_STATE_Update_Error_BeforeRTOSStart(ERR_UART_LOG, 0);
-=======
 		if(BSP_UART_LOG_Init(phuart3) == DRV_OK){
 			APP_STATE_Update_Error_BeforeRTOSStart(ERR_UART_LOG, EER_NOT_ACTIVE);
->>>>>>> Stashed changes
->>>>>>> 0e76a80 (refactor: improve BSP architecture layer)
 			break;
 		}
 	}

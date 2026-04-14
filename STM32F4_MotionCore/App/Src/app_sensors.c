@@ -12,34 +12,16 @@ void APP_SENSORS_Init(UART_HandleTypeDef* phuart4, I2C_HandleTypeDef* phi2c1)
 	/* Set all peripheral handles in BSP */
 	for(uint32_t i = 0; i < 3; ++i)
 	{
-<<<<<<< Updated upstream
-		if(BSP_UART_1WireDS18B20_Init(phuart4) == DRV_OK){
-<<<<<<< HEAD
-			APP_STATE_Update_Error_BeforeRTOSStart(ERR_TEMP_SENSOR, EER_NOT_ACTIVE);
-=======
-			APP_STATE_Update_Error_BeforeRTOSStart(ERR_TEMP_SENSOR, 0);
-=======
 		if(BSP_DS18B20_Init(phuart4) == DRV_OK){
 			APP_STATE_Update_Error_BeforeRTOSStart(ERR_TEMP_SENSOR, EER_NOT_ACTIVE);
->>>>>>> Stashed changes
->>>>>>> 0e76a80 (refactor: improve BSP architecture layer)
 			break;
 		}
 	}
 
 	for(uint32_t i = 0; i < 3; ++i)
 	{
-<<<<<<< Updated upstream
-		if(BSP_I2C_Init(phi2c1) == DRV_OK){
-<<<<<<< HEAD
-			APP_STATE_Update_Error_BeforeRTOSStart(ERR_POWER_SENSOR, EER_NOT_ACTIVE);
-=======
-			APP_STATE_Update_Error_BeforeRTOSStart(ERR_POWER_SENSOR, 0);
-=======
 		if(BSP_INA219_Init(phi2c1) == DRV_OK){
 			APP_STATE_Update_Error_BeforeRTOSStart(ERR_POWER_SENSOR, EER_NOT_ACTIVE);
->>>>>>> Stashed changes
->>>>>>> 0e76a80 (refactor: improve BSP architecture layer)
 			break;
 		}
 	}
