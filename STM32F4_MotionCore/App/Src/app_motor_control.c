@@ -57,7 +57,6 @@ static void motor_control_task(void* pvParameters)
 			case MOTOR_STOP:
 			{
 				curr_speed = 0.0f;
-
 				if(OSAL_MOTOR_ChangePWM_State(curr_speed, MOTOR_ORDINARY_STOP) != DRV_OK)
 				{
 					APP_STATE_Update_Error(ERR_TIM_PWM, EER_ACTIVE);

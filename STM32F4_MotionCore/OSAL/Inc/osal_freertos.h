@@ -1,6 +1,9 @@
 #ifndef OSAL_FREERTOS_H_
 #define OSAL_FREERTOS_H_
 
+/* BSP level include */
+#include "bsp_driver_rtc.h"
+
 /* BSP layer include */
 #include <bsp_driver_ina219.h>
 #include <bsp_driver_motor_control.h>
@@ -28,7 +31,6 @@ typedef struct
 }Electricity_t;
 
 DevStatus_t OSAL_Init(void);
-
 DevStatus_t OSAL_UART_LOG_SendData(char* tx_buffer, uint32_t len);
 SafeData_t OSAL_DS18B20_GetTemperature(void);
 Electricity_t OSAL_INA219_GetElectricity(void);
