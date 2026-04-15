@@ -13,11 +13,7 @@ void APP_MOTOR_CONTROL_init(TIM_HandleTypeDef* ptim1)
 
 	for(uint32_t i = 0; i < 3; ++i)
 	{
-<<<<<<< HEAD
-		if(BSP_TIM_Init(ptim1) == DRV_OK)
-=======
 		if(BSP_MOTOR_CONTROL_Init(ptim1) == DRV_OK)
->>>>>>> 0e76a80 (refactor: improve BSP architecture layer)
 		{
 			APP_STATE_Update_Error_BeforeRTOSStart(ERR_TIM_PWM, EER_NOT_ACTIVE);
 			break;
@@ -45,11 +41,7 @@ static void motor_control_task(void* pvParameters)
 			case MOTOR_RUN:
 			{
 				curr_speed = 70.0f;
-<<<<<<< HEAD
-				if(OSAL_TIM1_ChangePWM_State(curr_speed, MOTOR_FORWARD) != DRV_OK)
-=======
 				if(OSAL_MOTOR_ChangePWM_State(curr_speed, MOTOR_FORWARD) != DRV_OK)
->>>>>>> 0e76a80 (refactor: improve BSP architecture layer)
 				{
 					APP_STATE_Update_Error(ERR_TIM_PWM, EER_ACTIVE);
 				}
@@ -65,11 +57,7 @@ static void motor_control_task(void* pvParameters)
 			case MOTOR_STOP:
 			{
 				curr_speed = 0.0f;
-<<<<<<< HEAD
-				if(OSAL_TIM1_ChangePWM_State(curr_speed, MOTOR_ORDINARY_STOP) != DRV_OK)
-=======
 				if(OSAL_MOTOR_ChangePWM_State(curr_speed, MOTOR_ORDINARY_STOP) != DRV_OK)
->>>>>>> 0e76a80 (refactor: improve BSP architecture layer)
 				{
 					APP_STATE_Update_Error(ERR_TIM_PWM, EER_ACTIVE);
 				}
@@ -86,11 +74,7 @@ static void motor_control_task(void* pvParameters)
 			{
 				for(uint32_t i = 0; i < 70; ++i)
 				{
-<<<<<<< HEAD
-					if(OSAL_TIM1_ChangePWM_State((float)i, MOTOR_FORWARD) != DRV_OK)
-=======
 					if(OSAL_MOTOR_ChangePWM_State((float)i, MOTOR_FORWARD) != DRV_OK)
->>>>>>> 0e76a80 (refactor: improve BSP architecture layer)
 					{
 						APP_STATE_Update_Error(ERR_TIM_PWM, EER_ACTIVE);
 					}
@@ -109,11 +93,7 @@ static void motor_control_task(void* pvParameters)
 			case MOTOR_FAULT_STOP:
 			{
 				curr_speed = 0.0f;
-<<<<<<< HEAD
-				if(OSAL_TIM1_ChangePWM_State(curr_speed, MOTOR_EMERGENCY_STOP) != DRV_OK)
-=======
 				if(OSAL_MOTOR_ChangePWM_State(curr_speed, MOTOR_EMERGENCY_STOP) != DRV_OK)
->>>>>>> 0e76a80 (refactor: improve BSP architecture layer)
 				{
 					APP_STATE_Update_Error(ERR_TIM_PWM, EER_ACTIVE);
 				}

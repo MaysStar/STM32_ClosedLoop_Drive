@@ -56,17 +56,8 @@ void APP_LOGS_Init(SD_HandleTypeDef* phsd, UART_HandleTypeDef* phuart3)
 
 	for(uint32_t i = 0; i < 3; ++i)
 	{
-<<<<<<< Updated upstream
-		if(BSP_UART_Init(phuart2, phuart3) == DRV_OK){
-<<<<<<< HEAD
-			APP_STATE_Update_Error_BeforeRTOSStart(ERR_UART_LOG, EER_NOT_ACTIVE);
-=======
-			APP_STATE_Update_Error_BeforeRTOSStart(ERR_UART_LOG, 0);
-=======
 		if(BSP_UART_LOG_Init(phuart3) == DRV_OK){
 			APP_STATE_Update_Error_BeforeRTOSStart(ERR_UART_LOG, EER_NOT_ACTIVE);
->>>>>>> Stashed changes
->>>>>>> 0e76a80 (refactor: improve BSP architecture layer)
 			break;
 		}
 	}
