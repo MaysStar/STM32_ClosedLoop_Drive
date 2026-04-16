@@ -15,6 +15,7 @@
 /* APP level includes*/
 #include "app_state.h"
 #include "app_user_control.h"
+#include "app_housekeeping.h"
 
 #include "SEGGER_SYSVIEW.h"
 
@@ -25,6 +26,8 @@
 typedef struct
 {
 	ADC_HandleTypeDef* padc1;
+	RTC_HandleTypeDef* prtc;
+	IWDG_HandleTypeDef* piwdg;
 } AppHardwareConfig_t;
 
 #include "main.h"

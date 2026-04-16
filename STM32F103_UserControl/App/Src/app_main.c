@@ -9,6 +9,7 @@ void APP_Main(AppHardwareConfig_t* app_hw)
 
 	/* Initialize BSP HAL configuration */
 	APP_USER_CONTROL_Init(app_hw->padc1);
+	APP_HOUSEKEEPING_Init(app_hw->piwdg, app_hw->prtc);
 
 	/* Initialize OSAL and RTOS APPs */
 	for(uint32_t i = 0; i < 3; ++i)

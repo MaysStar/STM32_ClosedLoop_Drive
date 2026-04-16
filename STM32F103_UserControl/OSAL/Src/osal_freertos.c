@@ -2,7 +2,11 @@
 
 /* private variables */
 static TaskHandle_t curr_motor_target_speed_task = NULL;
+static TaskHandle_t curr_housekeeping_task = NULL;
+
 static SemaphoreHandle_t m_adc1 = NULL;
+
+static SemaphoreHandle_t m_rtc = NULL;
 
 /* ADC1 Mutex register, take and give */
 static void ADC1_MutexTake(void)
@@ -18,6 +22,23 @@ static void ADC1_MutexGive(void)
 	if(m_adc1 != NULL)
 	{
 		xSemaphoreGive(m_adc1);
+	}
+}
+
+/* RTC take and give semaphore */
+static void RTC_MutexTake(void)
+{
+	if(m_rtc!= NULL)
+	{
+		xSemaphoreTake(m_rtc, portMAX_DELAY);
+	}
+}
+
+static void RTC_MutexGive(void)
+{
+	if(m_rtc != NULL)
+	{
+		xSemaphoreGive(m_rtc);
 	}
 }
 
@@ -52,4 +73,20 @@ DevStatus_t OSAL_GET_MOTOR_TARGET_SPEED(uint32_t* motor_target_speed)
 	return ret;
 }
 
+/* Function for thread save data get for tasks. The function guarantees RTC operation will be completed */
+DevStatus_t OSAL_RTC_GetDataDateTime(RTC_DateTypeDef* pdate, RTC_TimeTypeDef* ptime)
+{
+	/* Take Mutex and set curr_task value */
+	RTC_MutexTake();
 
+	curr_housekeeping_task = xTaskGetCurrentTaskHandle();
+
+	DevStatus_t ret = BSP_RTC_GetDataDateTime(pdate, ptime);
+
+	/* Give Mutex and set curr_task NULL */
+	curr_housekeeping_task = NULL;
+
+	RTC_MutexGive();
+
+	return ret;
+}

@@ -7,11 +7,13 @@ static void motor_target_speed_task (void* pvParameters);
 /* Initialize BSP user speed control */
 void APP_USER_CONTROL_Init(ADC_HandleTypeDef* padc1)
 {
+	APP_STATE_Update_Error_BeforeRTOSStart(ERR_POTENTIOMETER, EER_ACTIVE);
 	/* BSP potentiometer initialize */
 	for(uint32_t i = 0; i < 3; ++i)
 	{
 		if(BSP_POTENTIOMETER_Init(padc1) == DRV_OK)
 		{
+			APP_STATE_Update_Error_BeforeRTOSStart(ERR_POTENTIOMETER, EER_NOT_ACTIVE);
 			break;
 		}
 	}
@@ -33,6 +35,11 @@ static void motor_target_speed_task (void* pvParameters)
 		if(res == DRV_OK)
 		{
 			APP_STATE_Set_MotorTargetSpeed(motor_target_speed);
+			APP_STATE_Update_Error(ERR_POTENTIOMETER, EER_NOT_ACTIVE);
+		}
+		else
+		{
+			APP_STATE_Update_Error(ERR_POTENTIOMETER, EER_ACTIVE);
 		}
 
 		vTaskDelay(pdMS_TO_TICKS(10));
