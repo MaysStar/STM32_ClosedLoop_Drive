@@ -28,6 +28,7 @@ typedef struct
 	ADC_HandleTypeDef* padc1;
 	RTC_HandleTypeDef* prtc;
 	IWDG_HandleTypeDef* piwdg;
+	SPI_HandleTypeDef* pspi1;
 } AppHardwareConfig_t;
 
 #include "main.h"

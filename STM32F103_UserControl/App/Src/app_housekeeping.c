@@ -33,11 +33,11 @@ void APP_HOUSEKEEPING_Init(IWDG_HandleTypeDef* piwdg, RTC_HandleTypeDef* prtc)
 
 		date.Year = 26;
 		date.Month = RTC_MONTH_APRIL;
-		date.WeekDay = RTC_WEEKDAY_THURSDAY;
-		date.Date = 9;
+		date.WeekDay = RTC_WEEKDAY_MONDAY;
+		date.Date = 20;
 
-		time.Hours = 20;
-		time.Minutes = 18;
+		time.Hours = 12;
+		time.Minutes = 30;
 		time.Seconds = 0;
 
 		if(BSP_RTC_SetDateTime(date, time) != DRV_OK)
@@ -46,7 +46,7 @@ void APP_HOUSEKEEPING_Init(IWDG_HandleTypeDef* piwdg, RTC_HandleTypeDef* prtc)
 		}
 	}
 
-	xTaskCreate(housekeeping_task, "housekeeping_task", 512, NULL, 1, &housekeeping_handle);
+	xTaskCreate(housekeeping_task, "housekeeping_task", 128, NULL, 1, &housekeeping_handle);
 	configASSERT(housekeeping_handle != NULL);
 }
 
@@ -61,6 +61,7 @@ static void housekeeping_task(void* pvParameters)
 	while(1)
 	{
 		xLastWakeTime = xTaskGetTickCount();
+
 		if(OSAL_RTC_GetDataDateTime(&date, &time) != DRV_OK)
 		{
 			APP_STATE_Update_Error(ERR_RTC, EER_ACTIVE);
@@ -78,8 +79,13 @@ static void housekeeping_task(void* pvParameters)
 void vApplicationIdleHook(void)
 {
 	uint32_t g_state = APP_STATE_Get_State();
-	if((g_state == 0U) && (local_piwdg != NULL))
+	if((local_piwdg != NULL) && (g_state == ERR_STATE_OK))
 	{
 		HAL_IWDG_Refresh(local_piwdg);
 	}
+}
+
+void vApplicationMallocFailedHook(void)
+{
+    while(1);
 }

@@ -8,7 +8,7 @@ void APP_Main(AppHardwareConfig_t* app_hw)
 	SEGGER_SYSVIEW_Start();
 
 	/* Initialize BSP HAL configuration */
-	APP_USER_CONTROL_Init(app_hw->padc1);
+	APP_USER_CONTROL_Init(app_hw->padc1, app_hw->pspi1);
 	APP_HOUSEKEEPING_Init(app_hw->piwdg, app_hw->prtc);
 
 	/* Initialize OSAL and RTOS APPs */
