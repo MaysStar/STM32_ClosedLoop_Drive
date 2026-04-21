@@ -25,8 +25,6 @@ static SDRESULT APP_SD_Send_Logs(char* text, uint32_t len);
 static TaskHandle_t uart_sd_logging_handle = NULL;
 static void uart_sd_logging_task(void* pvParameters);
 
-
-
 DWORD get_fattime(void) {
     return  ((DWORD)(2026 - 1980) << 25) |
             ((DWORD)1 << 21) |
