@@ -78,7 +78,7 @@ float BSP_INA219_GetPower(void)
 {
 	int16_t raw_power = (int16_t)((pow_reg[0] << 8) | pow_reg[1]);
 
-	/* Calculate power Power_LSB = 20 Current_LSB
+	/* Calculate power Power_LSB = 20 * Current_LSB
 	 * Power_LSB = 2
 	 */
 
