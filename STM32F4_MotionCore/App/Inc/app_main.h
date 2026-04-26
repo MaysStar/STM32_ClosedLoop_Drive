@@ -16,6 +16,7 @@
 #include <app_state.h>
 #include <app_motor_control.h>
 #include <app_motor_safety_user_control.h>
+#include "app_user_communication.h"
 
 #include "SEGGER_SYSVIEW.h"
 
@@ -32,6 +33,7 @@ typedef struct
 	IWDG_HandleTypeDef* phiwdg;
 	RTC_HandleTypeDef* prtc;
 	TIM_HandleTypeDef* ptim1;
+	CAN_HandleTypeDef* pcan1;
 } AppHardwareConfig_t;
 
 #include "main.h"

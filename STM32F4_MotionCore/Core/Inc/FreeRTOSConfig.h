@@ -89,7 +89,7 @@
  * configUSE_TIME_SLICING to 0 to prevent the scheduler switching between Ready
  * state tasks just because there was a tick interrupt.  See
  * https://freertos.org/single-core-amp-smp-rtos-scheduling.html. */
-#define configUSE_TIME_SLICING                     0
+#define configUSE_TIME_SLICING                     1
 
 /* Set configUSE_PORT_OPTIMISED_TASK_SELECTION to 1 to select the next task to
  * run using an algorithm optimised to the instruction set of the target
@@ -115,7 +115,7 @@
  * (in words, not in bytes!).  The kernel does not use this constant for any
  * other purpose.  Demo applications use the constant to make the demos somewhat
  * portable across hardware architectures. */
-#define configMINIMAL_STACK_SIZE                   128
+#define configMINIMAL_STACK_SIZE                   512
 
 /* configMAX_TASK_NAME_LEN sets the maximum length (in characters) of a task's
  * human readable name.  Includes the NULL terminator. */
@@ -136,7 +136,7 @@
  *
  * Defining configTICK_TYPE_WIDTH_IN_BITS as TICK_TYPE_WIDTH_64_BITS causes
  * TickType_t to be defined (typedef'ed) as an unsigned 64-bit type. */
-#define configTICK_TYPE_WIDTH_IN_BITS              TICK_TYPE_WIDTH_64_BITS
+#define configTICK_TYPE_WIDTH_IN_BITS              TICK_TYPE_WIDTH_32_BITS
 
 /* Set configIDLE_SHOULD_YIELD to 1 to have the Idle task yield to an
  * application task if there is an Idle priority (priority 0) application task
@@ -327,7 +327,7 @@
 
 /* Another name for configMAX_SYSCALL_INTERRUPT_PRIORITY - the name used depends
  * on the FreeRTOS port. */
-#define configMAX_API_CALL_INTERRUPT_PRIORITY    0
+#define configMAX_API_CALL_INTERRUPT_PRIORITY    ( 5 << (8 - 4) )
 
 /******************************************************************************/
 /* Hook and callback function related definitions. ****************************/

@@ -9,4 +9,6 @@ typedef enum {
     DRV_INIT_NEEDED = 0x04U,
 } DevStatus_t;
 
+typedef void(*bsp_callback_fun)(void);
+
 #endif /* BSP_COMMON_H */

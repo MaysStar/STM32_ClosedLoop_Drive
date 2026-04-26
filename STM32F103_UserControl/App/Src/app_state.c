@@ -20,7 +20,7 @@ uint32_t APP_STATE_Get_State(void)
 /* Thread-safe data getting */
 GlobalData_t APP_STATE_Get_Data(void)
 {
-	GlobalData_t GlobalDataState_copy;
+	GlobalData_t GlobalDataState_copy = {0};
 	if(xSemaphoreTake(m_global_data, portMAX_DELAY) == pdTRUE)
 	{
 		GlobalDataState_copy = GlobalDataState;
@@ -33,7 +33,7 @@ GlobalData_t APP_STATE_Get_Data(void)
 /* Set peripherals state */
 void APP_STATE_Update_Error_BeforeRTOSStart(uint32_t error_flag, uint8_t is_active)
 {
-	if (is_active == EER_ACTIVE) {
+	if (is_active == ERR_ACTIVE) {
 		GlobalDataState.dev_state |= error_flag;
 	} else {
 		GlobalDataState.dev_state &= ~error_flag;
@@ -44,7 +44,7 @@ void APP_STATE_Update_Error(uint32_t error_flag, uint8_t is_active)
 {
 	if(xSemaphoreTake(m_global_data, portMAX_DELAY) == pdTRUE)
 	{
-		if (is_active == EER_ACTIVE) {
+		if (is_active == ERR_ACTIVE) {
 			GlobalDataState.dev_state |= error_flag;
 		} else {
 			GlobalDataState.dev_state &= ~error_flag;
@@ -75,4 +75,18 @@ void APP_STATE_Set_MotorTargetSpeed(uint32_t motor_target_speed)
 	}
 }
 
+/* Set data and states from MCU CAN communication */
+void APP_STATE_Set_CommunicationData(GlobalData_t comm_data)
+{
+	if(xSemaphoreTake(m_global_data, portMAX_DELAY) == pdTRUE)
+	{
+		GlobalDataState.motor_state = comm_data.motor_state;
+		GlobalDataState.motor_actual_speed = comm_data.motor_actual_speed;
+		GlobalDataState.current_mA = comm_data.current_mA;
+		GlobalDataState.voltage_V = comm_data.voltage_V;
+		GlobalDataState.temperature_C = comm_data.temperature_C;
+		GlobalDataState.logs_state = comm_data.logs_state;
 
+		xSemaphoreGive(m_global_data);
+	}
+}

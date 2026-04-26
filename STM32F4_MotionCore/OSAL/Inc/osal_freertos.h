@@ -10,6 +10,7 @@
 #include <bsp_driver_uart_log.h>
 #include <bsp_driver_ds18b20.h>
 #include "bsp_driver_rtc.h"
+#include "bsp_driver_mcu_communication.h"
 
 /* freeRTOS layer include */
 #include "FreeRTOS.h"
@@ -36,5 +37,8 @@ SafeData_t OSAL_DS18B20_GetTemperature(void);
 Electricity_t OSAL_INA219_GetElectricity(void);
 DevStatus_t OSAL_RTC_GetDataDateTime(RTC_DateTypeDef* pdate, RTC_TimeTypeDef* ptime);
 DevStatus_t OSAL_MOTOR_ChangePWM_State(float pwm_percent, uint8_t MOTOR_STATE);
+
+DevStatus_t OSAL_USER_COMMUNICATION_SendMessage(CAN_TxMessage_t* can_tx_buf, uint32_t can_tx_buf_len);
+DevStatus_t OSAL_USER_COMMUNICATION_ReceiveMessage(CAN_RxMessage_t* can_rx_buf, uint32_t can_rx_buf_len);
 
 #endif /* OSAL_FREERTOS_H_ */

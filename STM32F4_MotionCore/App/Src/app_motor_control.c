@@ -9,13 +9,13 @@ static void motor_control_task(void* pvParameters);
 /* Initialize timer1 PWM and check errors */
 void APP_MOTOR_CONTROL_init(TIM_HandleTypeDef* ptim1)
 {
-	APP_STATE_Update_Error_BeforeRTOSStart(ERR_TIM_PWM, EER_ACTIVE);
+	APP_STATE_Update_Error_BeforeRTOSStart(ERR_TIM_PWM, ERR_ACTIVE);
 
 	for(uint32_t i = 0; i < 3; ++i)
 	{
 		if(BSP_MOTOR_CONTROL_Init(ptim1) == DRV_OK)
 		{
-			APP_STATE_Update_Error_BeforeRTOSStart(ERR_TIM_PWM, EER_NOT_ACTIVE);
+			APP_STATE_Update_Error_BeforeRTOSStart(ERR_TIM_PWM, ERR_NOT_ACTIVE);
 			break;
 		}
 	}
@@ -40,17 +40,17 @@ static void motor_control_task(void* pvParameters)
 		{
 			case MOTOR_RUN:
 			{
-				curr_speed = 70.0f;
-				if(OSAL_MOTOR_ChangePWM_State(curr_speed, MOTOR_FORWARD) != DRV_OK)
+				APP_STATE_Set_Motor_State(MOTOR_RUN);
+				if(OSAL_MOTOR_ChangePWM_State(global_state.target_motor_speed, MOTOR_FORWARD) != DRV_OK)
 				{
-					APP_STATE_Update_Error(ERR_TIM_PWM, EER_ACTIVE);
+					APP_STATE_Update_Error(ERR_TIM_PWM, ERR_ACTIVE);
 				}
 				else
 				{
-					APP_STATE_Update_Error(ERR_TIM_PWM, EER_NOT_ACTIVE);
+					APP_STATE_Update_Error(ERR_TIM_PWM, ERR_NOT_ACTIVE);
 				}
 
-				APP_STATE_Set_Motor_Values(curr_speed, curr_speed);
+				APP_STATE_Set_Motor_ActualSpeed(global_state.target_motor_speed);
 
 				break;
 			}
@@ -59,34 +59,34 @@ static void motor_control_task(void* pvParameters)
 				curr_speed = 0.0f;
 				if(OSAL_MOTOR_ChangePWM_State(curr_speed, MOTOR_ORDINARY_STOP) != DRV_OK)
 				{
-					APP_STATE_Update_Error(ERR_TIM_PWM, EER_ACTIVE);
+					APP_STATE_Update_Error(ERR_TIM_PWM, ERR_ACTIVE);
 				}
 				else
 				{
-					APP_STATE_Update_Error(ERR_TIM_PWM, EER_NOT_ACTIVE);
+					APP_STATE_Update_Error(ERR_TIM_PWM, ERR_NOT_ACTIVE);
 				}
 
 				APP_STATE_Set_Motor_State(MOTOR_RECOVER);
-				APP_STATE_Set_Motor_Values(curr_speed, curr_speed);
+				APP_STATE_Set_Motor_ActualSpeed(curr_speed);
 				break;
 			}
 			case MOTOR_RECOVER:
 			{
-				for(uint32_t i = 0; i < 70; ++i)
+				for(uint32_t i = 0; i < global_state.target_motor_speed; ++i)
 				{
 					if(OSAL_MOTOR_ChangePWM_State((float)i, MOTOR_FORWARD) != DRV_OK)
 					{
-						APP_STATE_Update_Error(ERR_TIM_PWM, EER_ACTIVE);
+						APP_STATE_Update_Error(ERR_TIM_PWM, ERR_ACTIVE);
 					}
 					else
 					{
-						APP_STATE_Update_Error(ERR_TIM_PWM, EER_NOT_ACTIVE);
+						APP_STATE_Update_Error(ERR_TIM_PWM, ERR_NOT_ACTIVE);
 					}
-					APP_STATE_Set_Motor_Values(curr_speed, curr_speed);
+					APP_STATE_Set_Motor_ActualSpeed(i);
 					vTaskDelay(pdMS_TO_TICKS(20));
 				}
 
-				APP_STATE_Set_Motor_Values(curr_speed, curr_speed);
+				APP_STATE_Set_Motor_ActualSpeed(global_state.target_motor_speed);
 				APP_STATE_Set_Motor_State(MOTOR_RUN);
 				break;
 			}
@@ -95,14 +95,14 @@ static void motor_control_task(void* pvParameters)
 				curr_speed = 0.0f;
 				if(OSAL_MOTOR_ChangePWM_State(curr_speed, MOTOR_EMERGENCY_STOP) != DRV_OK)
 				{
-					APP_STATE_Update_Error(ERR_TIM_PWM, EER_ACTIVE);
+					APP_STATE_Update_Error(ERR_TIM_PWM, ERR_ACTIVE);
 				}
 				else
 				{
-					APP_STATE_Update_Error(ERR_TIM_PWM, EER_NOT_ACTIVE);
+					APP_STATE_Update_Error(ERR_TIM_PWM, ERR_NOT_ACTIVE);
 				}
 
-				APP_STATE_Set_Motor_Values(curr_speed, curr_speed);
+				APP_STATE_Set_Motor_ActualSpeed(curr_speed);
 				APP_STATE_Set_Motor_State(MOTOR_RECOVER);
 			}
 			default:

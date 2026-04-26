@@ -49,15 +49,15 @@ static SDRESULT APP_SD_Mount(void)
 /* Function for initialization SD and prepare to logs UART */
 void APP_LOGS_Init(SD_HandleTypeDef* phsd, UART_HandleTypeDef* phuart3)
 {
-	APP_STATE_Update_Error_BeforeRTOSStart(ERR_SD_CARD_LOG, EER_NOT_ACTIVE);
-	APP_STATE_Update_Error_BeforeRTOSStart(ERR_UART_LOG, EER_ACTIVE);
+	APP_STATE_Update_Error_BeforeRTOSStart(ERR_SD_CARD_LOG, ERR_NOT_ACTIVE);
+	APP_STATE_Update_Error_BeforeRTOSStart(ERR_UART_LOG, ERR_ACTIVE);
 	/* Set all peripheral handles in BSP */
 	BSP_SD_InitSetHandle(phsd);
 
 	for(uint32_t i = 0; i < 3; ++i)
 	{
 		if(BSP_UART_LOG_Init(phuart3) == DRV_OK){
-			APP_STATE_Update_Error_BeforeRTOSStart(ERR_UART_LOG, EER_NOT_ACTIVE);
+			APP_STATE_Update_Error_BeforeRTOSStart(ERR_UART_LOG, ERR_NOT_ACTIVE);
 			break;
 		}
 	}
@@ -140,29 +140,29 @@ static void uart_sd_logging_task(void* pvParameters)
 		sd_state = APP_SD_Mount();
 		if(sd_state == FR_OK)
 		{
-			APP_STATE_Update_Error(ERR_SD_CARD_LOG, EER_NOT_ACTIVE);
+			APP_STATE_Update_Error(ERR_SD_CARD_LOG, ERR_NOT_ACTIVE);
 			/* Create new work directory */
 			sd_state = f_mkdir(SD_WORK_DIR_PATH);
 			if(sd_state != FR_OK)
 			{
-				APP_STATE_Update_Error(ERR_SD_CARD_LOG, EER_ACTIVE);
+				APP_STATE_Update_Error(ERR_SD_CARD_LOG, ERR_ACTIVE);
 			}
 			else
 			{
-				APP_STATE_Update_Error(ERR_SD_CARD_LOG, EER_NOT_ACTIVE);
+				APP_STATE_Update_Error(ERR_SD_CARD_LOG, ERR_NOT_ACTIVE);
 			}
 		}
-		else APP_STATE_Update_Error(ERR_SD_CARD_LOG, EER_ACTIVE);
+		else APP_STATE_Update_Error(ERR_SD_CARD_LOG, ERR_ACTIVE);
 
 		/* Open file */
 		sd_state = APP_SD_Open();
 		if(sd_state != FR_OK)
 		{
-			APP_STATE_Update_Error(ERR_SD_CARD_LOG, EER_ACTIVE);
+			APP_STATE_Update_Error(ERR_SD_CARD_LOG, ERR_ACTIVE);
 		}
 		else
 		{
-			APP_STATE_Update_Error(ERR_SD_CARD_LOG, EER_NOT_ACTIVE);
+			APP_STATE_Update_Error(ERR_SD_CARD_LOG, ERR_NOT_ACTIVE);
 		}
 	}
 
@@ -255,11 +255,11 @@ static void uart_sd_logging_task(void* pvParameters)
 			DevStatus_t uart_state = OSAL_UART_LOG_SendData(sd_card_buffer, strlen(sd_card_buffer));
 			if(uart_state != DRV_OK)
 			{
-				APP_STATE_Update_Error(ERR_UART_LOG, EER_ACTIVE);
+				APP_STATE_Update_Error(ERR_UART_LOG, ERR_ACTIVE);
 			}
 			else
 			{
-				APP_STATE_Update_Error(ERR_UART_LOG, EER_NOT_ACTIVE);
+				APP_STATE_Update_Error(ERR_UART_LOG, ERR_NOT_ACTIVE);
 			}
 		}
 
@@ -276,21 +276,21 @@ static void uart_sd_logging_task(void* pvParameters)
 						sd_state = APP_SD_Open();
 						if(sd_state != FR_OK)
 						{
-							APP_STATE_Update_Error(ERR_SD_CARD_LOG, EER_ACTIVE);
+							APP_STATE_Update_Error(ERR_SD_CARD_LOG, ERR_ACTIVE);
 						}
 						else
 						{
-							APP_STATE_Update_Error(ERR_SD_CARD_LOG, EER_NOT_ACTIVE);
+							APP_STATE_Update_Error(ERR_SD_CARD_LOG, ERR_NOT_ACTIVE);
 						}
 					}
 					sd_state = APP_SD_Send_Logs(sd_card_buffer, strlen(sd_card_buffer));
 					if(sd_state != FR_OK)
 					{
-						APP_STATE_Update_Error(ERR_SD_CARD_LOG, EER_ACTIVE);
+						APP_STATE_Update_Error(ERR_SD_CARD_LOG, ERR_ACTIVE);
 					}
 					else
 					{
-						APP_STATE_Update_Error(ERR_SD_CARD_LOG, EER_NOT_ACTIVE);
+						APP_STATE_Update_Error(ERR_SD_CARD_LOG, ERR_NOT_ACTIVE);
 					}
 				}
 				else
