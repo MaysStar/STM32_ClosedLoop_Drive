@@ -16,6 +16,7 @@
 #include "app_state.h"
 #include "app_user_control.h"
 #include "app_housekeeping.h"
+#include "app_user_communication.h"
 
 #include "SEGGER_SYSVIEW.h"
 
@@ -29,6 +30,7 @@ typedef struct
 	RTC_HandleTypeDef* prtc;
 	IWDG_HandleTypeDef* piwdg;
 	SPI_HandleTypeDef* pspi1;
+	CAN_HandleTypeDef* pcan;
 } AppHardwareConfig_t;
 
 #include "main.h"

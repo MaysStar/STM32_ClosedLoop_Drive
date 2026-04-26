@@ -5,6 +5,7 @@ static TaskHandle_t curr_logs_task = NULL;
 static TaskHandle_t curr_temp_task = NULL;
 static TaskHandle_t curr_electricity_task = NULL;
 static TaskHandle_t curr_housekeeping_task = NULL;
+static TaskHandle_t curr_communication_task = NULL;
 
 static SemaphoreHandle_t m_uart3 = NULL;
 static SemaphoreHandle_t m_uart4 = NULL;
@@ -14,6 +15,11 @@ static SemaphoreHandle_t m_i2c1 = NULL;
 static SemaphoreHandle_t m_rtc = NULL;
 
 static SemaphoreHandle_t m_tim1 = NULL;
+
+static SemaphoreHandle_t m_can_tx = NULL;
+static SemaphoreHandle_t m_can_rx = NULL;
+
+static QueueHandle_t q_can_rx = NULL;
 
 /* Registered function for UART3 callback */
 static void UART3_TxCpltCallbak(void)
@@ -45,6 +51,35 @@ static void I2C1_TxRxCpltCallbak(void)
 		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 		vTaskNotifyGiveFromISR(curr_electricity_task, &xHigherPriorityTaskWoken);
 		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+	}
+}
+
+/* CAN transmit complete callback function */
+static void CAN_TxCpltCallback(void)
+{
+	if (curr_communication_task != NULL)
+	{
+		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+		vTaskNotifyGiveFromISR(curr_communication_task, &xHigherPriorityTaskWoken);
+		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+	}
+}
+
+/* CAN is able to receive message from FIFO0 callback function */
+static void CAN_RxFifo0MsgPendingCallback(void)
+{
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+	if (q_can_rx != NULL)
+	{
+		/* Local stack variables */
+		CAN_RxMessage_t curr_rx_msg;
+
+		DevStatus_t ret = BSP_MCU_COMMUNICATION_ReceiveMessage(&curr_rx_msg, BSP_CAN_RECEIVE_FIFO0);
+
+		if(ret == DRV_OK)
+		{
+			xQueueSendFromISR(q_can_rx, &curr_rx_msg, &xHigherPriorityTaskWoken);
+		}
 	}
 }
 
@@ -133,6 +168,39 @@ static void TIM1_MutexGive(void)
 	}
 }
 
+/* CAN transmit and receive take and give semaphore */
+static void CAN_TxMutexTake(void)
+{
+	if(m_can_tx!= NULL)
+	{
+		xSemaphoreTake(m_can_tx, portMAX_DELAY);
+	}
+}
+
+static void CAN_TxMutexGive(void)
+{
+	if(m_can_tx != NULL)
+	{
+		xSemaphoreGive(m_can_tx);
+	}
+}
+
+static void CAN_RxMutexTake(void)
+{
+	if(m_can_rx!= NULL)
+	{
+		xSemaphoreTake(m_can_rx, portMAX_DELAY);
+	}
+}
+
+static void CAN_RxMutexGive(void)
+{
+	if(m_can_rx != NULL)
+	{
+		xSemaphoreGive(m_can_rx);
+	}
+}
+
 static void UART_RegisterMutexes(void)
 {
 	/* Create all UART Mutexes */
@@ -162,6 +230,21 @@ static void TIM_RegisterMutexes(void)
 	/* Create all timers Mutexes */
 	m_tim1 = xSemaphoreCreateMutex();
 	configASSERT(m_tim1 != NULL);
+}
+
+static void CAN_RegisterMutex(void)
+{
+	m_can_tx = xSemaphoreCreateMutex();
+	configASSERT(m_can_tx != NULL);
+
+	m_can_rx = xSemaphoreCreateMutex();
+	configASSERT(m_can_rx != NULL);
+}
+
+static void CAN_RegisterQueues(void)
+{
+	q_can_rx = xQueueCreate(20, sizeof(CAN_RxMessage_t));
+	configASSERT(q_can_rx != NULL);
 }
 
 /* Function for thread save data sending for tasks and that function guarantees UART DMA operation will be completed */
@@ -524,6 +607,18 @@ DevStatus_t OSAL_Init(void)
 		return ret;
 	}
 
+	ret = BSP_MCU_COMMUNICATION_RegisterTxCpltCallback(CAN_TxCpltCallback);
+	if(ret != DRV_OK)
+	{
+		return DRV_INIT_NEEDED;
+	}
+
+	ret = BSP_MCU_COMMUNICATION_RegisterRxFifo0MsgPendingCallback(CAN_RxFifo0MsgPendingCallback);
+	if(ret != DRV_OK)
+	{
+		return DRV_INIT_NEEDED;
+	}
+
 	/* SDIO already has freeRTOS integration via SD BSP uses in diskio.c and FatFs. Since they are third-party files, I am keeping their default architectures */
 
 	/* Registration structures */
@@ -531,9 +626,64 @@ DevStatus_t OSAL_Init(void)
 	I2C_RegisterMutexes();
 	RTC_RegisterMutex();
 	TIM_RegisterMutexes();
+	CAN_RegisterMutex();
+	CAN_RegisterQueues();
 
 	return ret;
 }
+
+/* Send and get CAN messages */
+DevStatus_t OSAL_USER_COMMUNICATION_SendMessage(CAN_TxMessage_t* can_tx_buf, uint32_t can_tx_buf_len)
+{
+	/* Take Mutex and set current task handle */
+	CAN_TxMutexTake();
+	curr_communication_task = xTaskGetCurrentTaskHandle();
+
+	for(uint32_t i = 0; i < can_tx_buf_len; ++i)
+	{
+		/* Wait for free mailbox */
+		while(BSP_MCU_COMMUNICATION_GetTxMailbox() == 0) {
+			taskYIELD();
+		}
+
+		/* Send message */
+		if(BSP_MCU_COMMUNICATION_SendMessage(&can_tx_buf[i]) != DRV_OK)
+		{
+			curr_communication_task = NULL;
+			CAN_TxMutexGive();
+			return DRV_ERROR;
+		}
+
+		/* Wait transmit compelte */
+		if(ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(50)) == 0) {
+			curr_communication_task = NULL;
+			CAN_TxMutexGive();
+			return DRV_ERROR;
+		}
+	}
+
+	/* Give Mutex and set current task handle NULL */
+	curr_communication_task = NULL;
+	CAN_TxMutexGive();
+	return DRV_OK;
+}
+
+DevStatus_t OSAL_USER_COMMUNICATION_ReceiveMessage(CAN_RxMessage_t* can_rx_buf, uint32_t can_rx_buf_len)
+{
+	CAN_RxMutexTake();
+	for(uint32_t i = 0; i < can_rx_buf_len; ++i)
+	{
+		if(xQueueReceive(q_can_rx, &can_rx_buf[i], pdMS_TO_TICKS(50)) == pdFALSE)
+		{
+			CAN_RxMutexGive();
+			return DRV_ERROR;
+		}
+	}
+
+	CAN_RxMutexGive();
+	return DRV_OK;
+}
+
 
 /* Here you get when the one task make stack overflow and you can check it is name */
 void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)

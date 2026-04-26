@@ -114,7 +114,7 @@ DevStatus_t BSP_DS18B20_ResetPresence(void)
 	}
 
 	/* Presence */
-	ret = (DevStatus_t)HAL_UART_Receive(local_puart4_DS18B20, &data_for_reset_presence, 1, 1000);
+	ret = (DevStatus_t)HAL_UART_Receive(local_puart4_DS18B20, &data_for_reset_presence, 1, 100);
 
 	if(ret != DRV_OK)
 	{
@@ -315,7 +315,7 @@ DevStatus_t BSP_DS18B20_Init(UART_HandleTypeDef* huart4)
 	}
 
 	/* After issuing this command, the master must wait 10 ms for copy operation to complete */
-	HAL_Delay(10);
+	//HAL_Delay(10);
 
 	ret = BSP_DS18B20_ResetPresence();
 	if(ret != DRV_OK)

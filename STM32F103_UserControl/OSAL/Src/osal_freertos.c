@@ -3,6 +3,7 @@
 /* private variables */
 static TaskHandle_t curr_housekeeping_task = NULL;
 static TaskHandle_t curr_spi_task = NULL;
+static TaskHandle_t curr_communication_task = NULL;
 
 static SemaphoreHandle_t m_adc1 = NULL;
 
@@ -10,9 +11,13 @@ static SemaphoreHandle_t m_rtc = NULL;
 
 static SemaphoreHandle_t m_spi1 = NULL;
 
-volatile static uint8_t fill_buf[FILL_BUF_SIZE];
+static SemaphoreHandle_t m_can_tx = NULL;
+static SemaphoreHandle_t m_can_rx = NULL;
 
-/* SPI1 DMA transmit callback function */
+static QueueHandle_t q_can_rx = NULL;
+
+volatile static uint8_t fill_buf[FILL_BUF_SIZE];
+/* SPI1 DMA transmit complete callback function */
 static void SPI1_DmaTxCpltCallback(void)
 {
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
@@ -20,6 +25,34 @@ static void SPI1_DmaTxCpltCallback(void)
 	{
 		vTaskNotifyGiveFromISR(curr_spi_task , &xHigherPriorityTaskWoken);
 		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+	}
+}
+
+/* CAN transmit complete callback function */
+static void CAN_TxCpltCallback(void)
+{
+	if (curr_communication_task != NULL)
+	{
+		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+		vTaskNotifyGiveFromISR(curr_communication_task , &xHigherPriorityTaskWoken);
+		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+	}
+}
+
+/* CAN is able to receive message from FIFO0 callback function */
+static void CAN_RxFifo0MsgPendingCallback(void)
+{
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+	if (q_can_rx != NULL)
+	{
+		/* Local stack variables */
+		CAN_RxMessage_t curr_rx_msg;
+		DevStatus_t ret = BSP_MCU_COMMUNICATION_ReceiveMessage(&curr_rx_msg, BSP_CAN_RECEIVE_FIFO0);
+
+		if(ret == DRV_OK)
+		{
+			xQueueSendFromISR(q_can_rx, &curr_rx_msg, &xHigherPriorityTaskWoken);
+		}
 	}
 }
 
@@ -74,30 +107,100 @@ static void SPI1_MutexGive(void)
 	}
 }
 
+/* CAN transmit and receive take and give semaphore */
+static void CAN_TxMutexTake(void)
+{
+	if(m_can_tx!= NULL)
+	{
+		xSemaphoreTake(m_can_tx, portMAX_DELAY);
+	}
+}
+
+static void CAN_TxMutexGive(void)
+{
+	if(m_can_tx != NULL)
+	{
+		xSemaphoreGive(m_can_tx);
+	}
+}
+
+static void CAN_RxMutexTake(void)
+{
+	if(m_can_rx!= NULL)
+	{
+		xSemaphoreTake(m_can_rx, portMAX_DELAY);
+	}
+}
+
+static void CAN_RxMutexGive(void)
+{
+	if(m_can_rx != NULL)
+	{
+		xSemaphoreGive(m_can_rx);
+	}
+}
+
 static void ADC1_RegisterMutex(void)
 {
 	m_adc1 = xSemaphoreCreateMutex();
+	configASSERT(m_adc1 != NULL);
 }
 
 static void RTC_RegisterMutex(void)
 {
 	m_rtc = xSemaphoreCreateMutex();
+	configASSERT(m_rtc != NULL);
 }
 
 static void SPI1_RegisterMutex(void)
 {
 	m_spi1 = xSemaphoreCreateMutex();
+	configASSERT(m_spi1 != NULL);
+}
+
+static void CAN_RegisterMutex(void)
+{
+	m_can_tx = xSemaphoreCreateMutex();
+	configASSERT(m_can_tx != NULL);
+
+	m_can_rx = xSemaphoreCreateMutex();
+	configASSERT(m_can_rx != NULL);
+}
+
+static void CAN_RegisterQueue(void)
+{
+	q_can_rx = xQueueCreate(20, sizeof(CAN_RxMessage_t));
+	configASSERT(q_can_rx != NULL);
 }
 
 
 /* Initialize ALL freeRTOS structures and callback for BSP */
 DevStatus_t OSAL_Init(void)
 {
+	DevStatus_t ret = BSP_ST7735S_RegisterDmaTxCpltCallback(SPI1_DmaTxCpltCallback);
+	if(ret != DRV_OK)
+	{
+		return DRV_INIT_NEEDED;
+	}
+
+	ret = BSP_MCU_COMMUNICATION_RegisterTxCpltCallback(CAN_TxCpltCallback);
+	if(ret != DRV_OK)
+	{
+		return DRV_INIT_NEEDED;
+	}
+
+	ret = BSP_MCU_COMMUNICATION_RegisterRxFifo0MsgPendingCallback(CAN_RxFifo0MsgPendingCallback);
+	if(ret != DRV_OK)
+	{
+		return DRV_INIT_NEEDED;
+	}
+
 	ADC1_RegisterMutex();
 	RTC_RegisterMutex();
 	SPI1_RegisterMutex();
+	CAN_RegisterMutex();
 
-	DevStatus_t ret = BSP_ST7735S_RegisterDmaTxCpltCallback(SPI1_DmaTxCpltCallback);
+	CAN_RegisterQueue();
 
 	return ret;
 }
@@ -410,7 +513,6 @@ DevStatus_t OSAL_DISPLAY_WriteString(char* str, uint32_t str_len, uint32_t x, ui
 	BSP_ST7735S_CS_LOW();
 
 	/* Start coordinates and offsets */
-	uint32_t y_offset = 30;
 	uint32_t current_x = 0;
 
 	/* Calculate colors */
@@ -424,7 +526,7 @@ DevStatus_t OSAL_DISPLAY_WriteString(char* str, uint32_t str_len, uint32_t x, ui
 
 	while(symbols_sent < str_len)
 	{
-		ret = OSAL_ST7732_AddressWindow(x + current_x, y + y_offset, x + current_x + ( FONT_WIDTH - 1), y + y_offset + (FONT_HEIGHT - 1));
+		ret = OSAL_ST7732_AddressWindow(x + current_x, y, x + current_x + ( FONT_WIDTH - 1), y + (FONT_HEIGHT - 1));
 		if(ret != DRV_OK)
 		{
 			/* Stop communication */
@@ -502,4 +604,56 @@ DevStatus_t OSAL_DISPLAY_WriteString(char* str, uint32_t str_len, uint32_t x, ui
 	SPI1_MutexGive();
 
 	return ret;
+}
+
+/* Send and get CAN messages */
+DevStatus_t OSAL_USER_COMMUNICATION_SendMessage(CAN_TxMessage_t* can_tx_buf, uint32_t can_tx_buf_len)
+{
+	/* Take Mutex and set current task handle */
+	CAN_TxMutexTake();
+	curr_communication_task = xTaskGetCurrentTaskHandle();
+
+	for(uint32_t i = 0; i < can_tx_buf_len; ++i)
+	{
+		/* Wait for free mailbox */
+		while(BSP_MCU_COMMUNICATION_GetTxMailbox() == 0) {
+			taskYIELD();
+		}
+
+		/* Send message */
+		if(BSP_MCU_COMMUNICATION_SendMessage(&can_tx_buf[i]) != DRV_OK)
+		{
+			curr_communication_task = NULL;
+			CAN_TxMutexGive();
+			return DRV_ERROR;
+		}
+
+		/* Wait transmit compelte */
+		if(ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(50)) == 0) {
+			curr_communication_task = NULL;
+			CAN_TxMutexGive();
+			return DRV_ERROR;
+		}
+	}
+
+	/* Give Mutex and set current task handle NULL */
+	curr_communication_task = NULL;
+	CAN_TxMutexGive();
+	return DRV_OK;
+}
+
+DevStatus_t OSAL_USER_COMMUNICATION_ReceiveMessage(CAN_RxMessage_t* can_rx_buf, uint32_t can_rx_buf_len)
+{
+	CAN_RxMutexTake();
+	for(uint32_t i = 0; i < can_rx_buf_len; ++i)
+	{
+		if(xQueueReceive(q_can_rx, &can_rx_buf[i], pdMS_TO_TICKS(50)) == pdFALSE)
+		{
+			CAN_RxMutexGive();
+			return DRV_ERROR;
+		}
+	}
+
+	CAN_RxMutexGive();
+	return DRV_OK;
 }

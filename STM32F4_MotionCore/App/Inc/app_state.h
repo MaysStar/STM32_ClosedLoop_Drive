@@ -12,8 +12,9 @@
 #include "FreeRTOS.h"
 #include "semphr.h"
 
-#define EER_ACTIVE			0
-#define EER_NOT_ACTIVE		1
+#define ERR_STATE_OK		0
+#define ERR_ACTIVE			0
+#define ERR_NOT_ACTIVE		1
 
 #define ERR_OSAL_INIT 		(1 << 0)
 #define ERR_TEMP_SENSOR  	(1 << 1)
@@ -23,6 +24,7 @@
 #define ERR_WATCHDOG		(1 << 5)
 #define ERR_RTC				(1 << 6)
 #define ERR_TIM_PWM			(1 << 7)
+#define ERR_CAN				(1 << 8)
 
 typedef enum
 {
@@ -58,7 +60,10 @@ void APP_STATE_Update_Error(uint32_t error_flag, uint8_t is_active);
 
 void APP_STATE_Set_Date_Time(RTC_DateTypeDef date, RTC_TimeTypeDef time);
 void APP_STATE_Set_Sensors(float temp, float current_A, float power_W, float voltage_v);
-void APP_STATE_Set_Motor_Values(float real_motor_speed, float target_motor_speed);
+
+void APP_STATE_Set_Motor_TargetSpeed(float target_motor_speed);
+void APP_STATE_Set_Motor_ActualSpeed(float real_motor_speed);
+
 void APP_STATE_Set_Motor_State(MororState_t motor_state);
 
 #endif // APP_STATE_H

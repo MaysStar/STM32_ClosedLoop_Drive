@@ -48,7 +48,7 @@ void APP_STATE_Set_Date_Time(RTC_DateTypeDef date, RTC_TimeTypeDef time)
 /* Set peripherals state */
 void APP_STATE_Update_Error_BeforeRTOSStart(uint32_t error_flag, uint8_t is_active)
 {
-	if (is_active == EER_ACTIVE) {
+	if (is_active == ERR_ACTIVE) {
 		GlobalTelemetry.dev_state |= error_flag;
 	} else {
 		GlobalTelemetry.dev_state &= ~error_flag;
@@ -59,7 +59,7 @@ void APP_STATE_Update_Error(uint32_t error_flag, uint8_t is_active)
 {
 	if(xSemaphoreTake(m_telemetry, portMAX_DELAY) == pdTRUE)
 	{
-		if (is_active == EER_ACTIVE) {
+		if (is_active == ERR_ACTIVE) {
 			GlobalTelemetry.dev_state |= error_flag;
 		} else {
 			GlobalTelemetry.dev_state &= ~error_flag;
@@ -81,12 +81,21 @@ void APP_STATE_Set_Sensors(float temp, float current_A, float power_W, float vol
 	}
 }
 
-void APP_STATE_Set_Motor_Values(float real_motor_speed, float target_motor_speed)
+void APP_STATE_Set_Motor_TargetSpeed(float target_motor_speed)
+{
+	if(xSemaphoreTake(m_telemetry, portMAX_DELAY) == pdTRUE)
+	{
+		GlobalTelemetry.target_motor_speed = target_motor_speed;
+
+		xSemaphoreGive(m_telemetry);
+	}
+}
+
+void APP_STATE_Set_Motor_ActualSpeed(float real_motor_speed)
 {
 	if(xSemaphoreTake(m_telemetry, portMAX_DELAY) == pdTRUE)
 	{
 		GlobalTelemetry.real_motor_speed = real_motor_speed;
-		GlobalTelemetry.target_motor_speed = target_motor_speed;
 
 		xSemaphoreGive(m_telemetry);
 	}

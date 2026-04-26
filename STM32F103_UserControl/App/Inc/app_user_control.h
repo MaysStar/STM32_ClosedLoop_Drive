@@ -20,6 +20,8 @@
 /* else includes */
 #include "app_state.h"
 
+#define APP_USER_CONTROL_DISPLAY_BUF_LEN 64U
+
 void APP_USER_CONTROL_Init(ADC_HandleTypeDef* padc1, SPI_HandleTypeDef* pspi1);
 
 #endif /* APP_USER_CONTROL_H */

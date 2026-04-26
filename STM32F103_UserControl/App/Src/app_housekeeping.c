@@ -9,12 +9,12 @@ static void housekeeping_task(void* pvParameters);
 
 void APP_HOUSEKEEPING_Init(IWDG_HandleTypeDef* piwdg, RTC_HandleTypeDef* prtc)
 {
-	APP_STATE_Update_Error_BeforeRTOSStart(ERR_WATCHDOG, EER_ACTIVE);
-	APP_STATE_Update_Error_BeforeRTOSStart(ERR_RTC, EER_ACTIVE);
+	APP_STATE_Update_Error_BeforeRTOSStart(ERR_WATCHDOG, ERR_ACTIVE);
+	APP_STATE_Update_Error_BeforeRTOSStart(ERR_RTC, ERR_ACTIVE);
 	if(piwdg != NULL)
 	{
 		local_piwdg = piwdg;
-		APP_STATE_Update_Error_BeforeRTOSStart(ERR_WATCHDOG, EER_NOT_ACTIVE);
+		APP_STATE_Update_Error_BeforeRTOSStart(ERR_WATCHDOG, ERR_NOT_ACTIVE);
 	}
 	if(prtc != NULL)
 	{
@@ -23,7 +23,7 @@ void APP_HOUSEKEEPING_Init(IWDG_HandleTypeDef* piwdg, RTC_HandleTypeDef* prtc)
 		{
 			if(BSP_RTC_Init(prtc) == DRV_OK)
 			{
-				APP_STATE_Update_Error_BeforeRTOSStart(ERR_RTC, EER_NOT_ACTIVE);
+				APP_STATE_Update_Error_BeforeRTOSStart(ERR_RTC, ERR_NOT_ACTIVE);
 				break;
 			}
 		}
@@ -42,7 +42,7 @@ void APP_HOUSEKEEPING_Init(IWDG_HandleTypeDef* piwdg, RTC_HandleTypeDef* prtc)
 
 		if(BSP_RTC_SetDateTime(date, time) != DRV_OK)
 		{
-			APP_STATE_Update_Error_BeforeRTOSStart(ERR_RTC, EER_ACTIVE);
+			APP_STATE_Update_Error_BeforeRTOSStart(ERR_RTC, ERR_ACTIVE);
 		}
 	}
 
@@ -64,11 +64,11 @@ static void housekeeping_task(void* pvParameters)
 
 		if(OSAL_RTC_GetDataDateTime(&date, &time) != DRV_OK)
 		{
-			APP_STATE_Update_Error(ERR_RTC, EER_ACTIVE);
+			APP_STATE_Update_Error(ERR_RTC, ERR_ACTIVE);
 		}
 		else
 		{
-			APP_STATE_Update_Error(ERR_RTC, EER_NOT_ACTIVE);
+			APP_STATE_Update_Error(ERR_RTC, ERR_NOT_ACTIVE);
 			APP_STATE_Set_Date_Time(date, time);
 		}
 
@@ -78,8 +78,7 @@ static void housekeeping_task(void* pvParameters)
 
 void vApplicationIdleHook(void)
 {
-	uint32_t g_state = APP_STATE_Get_State();
-	if((local_piwdg != NULL) && (g_state == ERR_STATE_OK))
+	if((local_piwdg != NULL))
 	{
 		HAL_IWDG_Refresh(local_piwdg);
 	}
