@@ -90,7 +90,8 @@ void APP_STATE_Set_SleepMode(void)
 {
 	if(xSemaphoreTake(m_global_data, portMAX_DELAY) == pdTRUE)
 	{
-		GlobalDataState.mcu_sleep_mode ^= APP_STATE_MCU_SPEED_MODE_PASSIVE;
+		OSAL_PWR_StandbyMode();
+
 		xSemaphoreGive(m_global_data);
 	}
 }

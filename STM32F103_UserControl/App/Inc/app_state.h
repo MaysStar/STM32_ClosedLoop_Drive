@@ -34,7 +34,6 @@ typedef struct{
 	RTC_DateTypeDef date;
 	RTC_TimeTypeDef time;
 
-	uint8_t mcu_sleep_mode;
 	uint32_t dev_state; /* group state */
 
 	uint32_t current_mA;

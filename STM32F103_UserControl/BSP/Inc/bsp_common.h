@@ -2,6 +2,7 @@
 #define BSP_COMMON_H
 
 #include "stdint.h"
+#include "stm32f1xx_hal.h"
 
 typedef enum {
     DRV_OK = 0x00U,
@@ -12,5 +13,7 @@ typedef enum {
 } DevStatus_t;
 
 typedef void (*bsp_callback_fun)(void);
+
+void BSP_COMMON_PowerOff(void);
 
 #endif /* BSP_COMMON_H */
