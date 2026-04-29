@@ -33,6 +33,7 @@ typedef struct
 	IWDG_HandleTypeDef* phiwdg;
 	RTC_HandleTypeDef* prtc;
 	TIM_HandleTypeDef* ptim1;
+	TIM_HandleTypeDef* ptim2;
 	CAN_HandleTypeDef* pcan1;
 } AppHardwareConfig_t;
 

@@ -91,6 +91,15 @@ void APP_STATE_Set_Motor_TargetSpeed(float target_motor_speed)
 	}
 }
 
+void APP_STATE_Set_Motor_Direction(uint8_t motor_dir)
+{
+	if(xSemaphoreTake(m_telemetry, portMAX_DELAY) == pdTRUE)
+	{
+		GlobalTelemetry.motor_direction = motor_dir;
+		xSemaphoreGive(m_telemetry);
+	}
+}
+
 void APP_STATE_Set_Motor_ActualSpeed(float real_motor_speed)
 {
 	if(xSemaphoreTake(m_telemetry, portMAX_DELAY) == pdTRUE)

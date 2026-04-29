@@ -120,7 +120,7 @@ static void user_communication_task(void* pvParameters)
 
 		APP_STATE_Set_CommunicationData(g_data_state);
 
-		/* Make transmit message */
+		/* Make transmit messages */
 		APP_USER_COMMUNICATION_ConvertU32_to_U8(can_tx_buf[0].data, g_data_state.motor_target_speed);
 		can_tx_buf[0].ptx_header->DLC = 4;
 		can_tx_buf[0].ptx_header->ExtId = 0;
@@ -128,6 +128,14 @@ static void user_communication_task(void* pvParameters)
 		can_tx_buf[0].ptx_header->RTR = CAN_RTR_DATA;
 		can_tx_buf[0].ptx_header->StdId = APP_CAN_TARGET_SPEED_ID;
 		can_tx_buf[0].ptx_header->TransmitGlobalTime = DISABLE;
+
+		can_tx_buf[1].data[0] = g_data_state.motor_direction;
+		can_tx_buf[1].ptx_header->DLC = 1;
+		can_tx_buf[1].ptx_header->ExtId = 0;
+		can_tx_buf[1].ptx_header->IDE = CAN_ID_STD;
+		can_tx_buf[1].ptx_header->RTR = CAN_RTR_DATA;
+		can_tx_buf[1].ptx_header->StdId = APP_CAN_MOTOT_DIR_ID;
+		can_tx_buf[1].ptx_header->TransmitGlobalTime = DISABLE;
 
 		ret = OSAL_USER_COMMUNICATION_SendMessage(can_tx_buf, APP_CAN_TX_BUF_LEN);
 		if(ret != DRV_OK)

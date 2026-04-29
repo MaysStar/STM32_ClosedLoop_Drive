@@ -36,6 +36,8 @@ DevStatus_t OSAL_UART_LOG_SendData(char* tx_buffer, uint32_t len);
 SafeData_t OSAL_DS18B20_GetTemperature(void);
 Electricity_t OSAL_INA219_GetElectricity(void);
 DevStatus_t OSAL_RTC_GetDataDateTime(RTC_DateTypeDef* pdate, RTC_TimeTypeDef* ptime);
+
+int32_t OSAL_MOTOR_CONTROL_GetEncoderDifference(void);
 DevStatus_t OSAL_MOTOR_ChangePWM_State(float pwm_percent, uint8_t MOTOR_STATE);
 
 DevStatus_t OSAL_USER_COMMUNICATION_SendMessage(CAN_TxMessage_t* can_tx_buf, uint32_t can_tx_buf_len);

@@ -24,10 +24,17 @@
 #define ERR_DISPLAY			(1 << 4)
 #define ERR_CAN				(1 << 5)
 
+#define APP_STATE_MCU_SPEED_MODE_ACTIVE  0
+#define APP_STATE_MCU_SPEED_MODE_PASSIVE 1
+
+#define APP_STATE_MOTOR_FORWARD		 	 0
+#define APP_STATE_MOTOR_BACKWARD		 1
+
 typedef struct{
 	RTC_DateTypeDef date;
 	RTC_TimeTypeDef time;
 
+	uint8_t mcu_sleep_mode;
 	uint32_t dev_state; /* group state */
 
 	uint32_t current_mA;
@@ -36,6 +43,7 @@ typedef struct{
 
 	uint32_t motor_target_speed;
 	uint32_t motor_actual_speed;
+	uint8_t motor_direction;
 	DevStatus_t motor_state;
 
 	DevStatus_t logs_state;
@@ -50,7 +58,11 @@ void APP_STATE_Update_Error_BeforeRTOSStart(uint32_t error_flag, uint8_t is_acti
 void APP_STATE_Update_Error(uint32_t error_flag, uint8_t is_active);
 
 void APP_STATE_Set_Date_Time(RTC_DateTypeDef date, RTC_TimeTypeDef time);
+
 void APP_STATE_Set_MotorTargetSpeed(uint32_t motor_target_speed);
+void APP_STATE_Set_MotorDirection(void);
+void APP_STATE_Set_SleepMode(void);
+
 void APP_STATE_Set_CommunicationData(GlobalData_t comm_data);
 
 #endif /* APP_STATE_H */

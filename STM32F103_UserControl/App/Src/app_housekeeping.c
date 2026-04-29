@@ -1,8 +1,13 @@
 #include <app_housekeeping.h>
 
+/* The only Application, which can use direct HAL */
+
 /* private application variables */
 static IWDG_HandleTypeDef* local_piwdg = NULL;
 static RTC_HandleTypeDef* local_prtc = NULL;
+
+static volatile uint8_t motor_direction_button_state = APP_HOUSEKEEPING_BUTTON_PASSIVE;
+static volatile uint8_t sleep_mode_button_state = APP_HOUSEKEEPING_BUTTON_PASSIVE;
 
 static TaskHandle_t housekeeping_handle = NULL;
 static void housekeeping_task(void* pvParameters);
@@ -46,7 +51,7 @@ void APP_HOUSEKEEPING_Init(IWDG_HandleTypeDef* piwdg, RTC_HandleTypeDef* prtc)
 		}
 	}
 
-	xTaskCreate(housekeeping_task, "housekeeping_task", 128, NULL, 1, &housekeeping_handle);
+	xTaskCreate(housekeeping_task, "housekeeping_task", 128, NULL, 3, &housekeeping_handle);
 	configASSERT(housekeeping_handle != NULL);
 }
 
@@ -56,11 +61,14 @@ static RTC_TimeTypeDef time;
 static void housekeeping_task(void* pvParameters)
 {
 	TickType_t xLastWakeTime;
-	const TickType_t xFrequency = 1000;
+	const TickType_t xFrequency = 500;
+	xLastWakeTime = xTaskGetTickCount();
 
 	while(1)
 	{
-		xLastWakeTime = xTaskGetTickCount();
+		/* Check buttons state */
+		motor_direction_button_state = (uint8_t)HAL_GPIO_ReadPin(APP_HOUSEKEEPING_BUTTONS_GPIO_PORT, APP_HOUSEKEEPING_BUTTONS_MOTOR_DIRECTION_GPIO_PIN);
+		sleep_mode_button_state = (uint8_t)HAL_GPIO_ReadPin(APP_HOUSEKEEPING_BUTTONS_GPIO_PORT, APP_HOUSEKEEPING_BUTTONS_SLEEP_MODE_GPIO_PIN);
 
 		if(OSAL_RTC_GetDataDateTime(&date, &time) != DRV_OK)
 		{
@@ -70,6 +78,22 @@ static void housekeeping_task(void* pvParameters)
 		{
 			APP_STATE_Update_Error(ERR_RTC, ERR_NOT_ACTIVE);
 			APP_STATE_Set_Date_Time(date, time);
+		}
+
+		/* Wait for buttons state */
+		vTaskDelay(pdMS_TO_TICKS(200));
+
+		/* Check buttons state second time */
+		if((motor_direction_button_state == APP_HOUSEKEEPING_BUTTON_ACTIVE) &&
+		   (HAL_GPIO_ReadPin(APP_HOUSEKEEPING_BUTTONS_GPIO_PORT, APP_HOUSEKEEPING_BUTTONS_MOTOR_DIRECTION_GPIO_PIN) == APP_HOUSEKEEPING_BUTTON_ACTIVE))
+		{
+			APP_STATE_Set_MotorDirection();
+		}
+
+		if((sleep_mode_button_state == APP_HOUSEKEEPING_BUTTON_ACTIVE) &&
+		   (HAL_GPIO_ReadPin(APP_HOUSEKEEPING_BUTTONS_GPIO_PORT, APP_HOUSEKEEPING_BUTTONS_SLEEP_MODE_GPIO_PIN) == APP_HOUSEKEEPING_BUTTON_ACTIVE))
+		{
+			APP_STATE_Set_SleepMode();
 		}
 
 		vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(xFrequency));

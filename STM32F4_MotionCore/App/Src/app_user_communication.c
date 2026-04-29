@@ -60,20 +60,21 @@ static void user_communication_task(void* pvParameters)
 	    can_tx_buf[i].ptx_header = &tx_headers[i];
 	}
 
-	static CAN_RxMessage_t can_rx_buf[APP_CAN_RX_BUF_LEN];
+	static CAN_RxMessage_t can_rx_buf[APP_CAN_RX_BUF_LEN] = {0};
 
 	static GlobalData_t g_data_state;
 
 	const TickType_t xFrequency = pdMS_TO_TICKS(100);
 
+	// Initialize the xLastWakeTime variable with the current time.
+	TickType_t xLastWakeTime = xTaskGetTickCount();
+
 	while(1)
 	{
-		TickType_t xLastWakeTime = xTaskGetTickCount();
 		g_data_state = APP_STATE_Get_Data();
 
 		/* Make transmit messages */
 		APP_USER_COMMUNICATION_ConvertU32_to_U8(can_tx_buf[0].data, g_data_state.motor_state);
-		can_tx_buf[0].data[0] = 0x01;
 		can_tx_buf[0].ptx_header->DLC = 4;
 		can_tx_buf[0].ptx_header->ExtId = 0;
 		can_tx_buf[0].ptx_header->IDE = CAN_ID_STD;
@@ -82,7 +83,6 @@ static void user_communication_task(void* pvParameters)
 		can_tx_buf[0].ptx_header->TransmitGlobalTime = DISABLE;
 
 		APP_USER_COMMUNICATION_ConvertU32_to_U8(can_tx_buf[1].data, (uint32_t)(g_data_state.current_A * 1000.0f));
-		can_tx_buf[1].data[0] = 0x02;
 		can_tx_buf[1].ptx_header->DLC = 4;
 		can_tx_buf[1].ptx_header->ExtId = 0;
 		can_tx_buf[1].ptx_header->IDE = CAN_ID_STD;
@@ -91,7 +91,6 @@ static void user_communication_task(void* pvParameters)
 		can_tx_buf[1].ptx_header->TransmitGlobalTime = DISABLE;
 
 		APP_USER_COMMUNICATION_ConvertU32_to_U8(can_tx_buf[2].data, (uint32_t)g_data_state.voltage_V);
-		can_tx_buf[2].data[0] = 0x03;
 		can_tx_buf[2].ptx_header->DLC = 4;
 		can_tx_buf[2].ptx_header->ExtId = 0;
 		can_tx_buf[2].ptx_header->IDE = CAN_ID_STD;
@@ -108,7 +107,6 @@ static void user_communication_task(void* pvParameters)
 		can_tx_buf[3].ptx_header->TransmitGlobalTime = DISABLE;
 
 		APP_USER_COMMUNICATION_ConvertU32_to_U8(can_tx_buf[4].data, (uint32_t)g_data_state.real_motor_speed);
-		can_tx_buf[4].data[0] = 0x05;
 		can_tx_buf[4].ptx_header->DLC = 4;
 		can_tx_buf[4].ptx_header->ExtId = 0;
 		can_tx_buf[4].ptx_header->IDE = CAN_ID_STD;
@@ -117,7 +115,6 @@ static void user_communication_task(void* pvParameters)
 		can_tx_buf[4].ptx_header->TransmitGlobalTime = DISABLE;
 
 		APP_USER_COMMUNICATION_ConvertU32_to_U8(can_tx_buf[5].data, (uint32_t)g_data_state.dev_state);
-		can_tx_buf[5].data[0] = 0x06;
 		can_tx_buf[5].ptx_header->DLC = 4;
 		can_tx_buf[5].ptx_header->ExtId = 0;
 		can_tx_buf[5].ptx_header->IDE = CAN_ID_STD;
@@ -145,8 +142,27 @@ static void user_communication_task(void* pvParameters)
 		else
 		{
 			APP_STATE_Update_Error(ERR_CAN, ERR_NOT_ACTIVE);
-			uint32_t target_motor_speed = APP_USER_COMMUNICATION_ConvertU8_to_U32(can_rx_buf[0].data);
-			APP_STATE_Set_Motor_TargetSpeed((float)target_motor_speed);
+		}
+
+		for(uint32_t i = 0; i < APP_CAN_RX_BUF_LEN; ++i)
+		{
+			switch(can_rx_buf[i].rx_header_data.StdId)
+			{
+				case APP_CAN_TARGET_SPEED_ID:
+				{
+					uint32_t target_motor_speed = APP_USER_COMMUNICATION_ConvertU8_to_U32(can_rx_buf[i].data);
+					APP_STATE_Set_Motor_TargetSpeed((float)target_motor_speed);
+					break;
+				}
+				case APP_CAN_MOTOT_DIR_ID:
+				{
+					APP_STATE_Set_Motor_Direction(can_rx_buf[i].data[0]);
+					break;
+				}
+
+				default:
+					break;
+			}
 		}
 
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);

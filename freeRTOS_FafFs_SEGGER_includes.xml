@@ -13,11 +13,11 @@
       <includepath workspace_path="true">/${ProjName}/Third_part/SEGGER/Config</includepath>
       <includepath workspace_path="true">/${ProjName}/Third_part/SEGGER/FreeRTOSV10</includepath>
       <includepath workspace_path="true">/${ProjName}/OSAL/Inc</includepath>
+      <includepath workspace_path="true">/${ProjName}/Third_part/freeRTOS/Source/portable/MemMang</includepath>
       <includepath workspace_path="true">/${ProjName}/Third_part/freeRTOS/Source/portable/GCC/ARM_CM4F</includepath>
       <includepath workspace_path="true">/${ProjName}/Third_part/freeRTOS/Source/include</includepath>
       <includepath workspace_path="true">/${ProjName}/Third_part/freeRTOS/Source</includepath>
       <includepath workspace_path="true">/${ProjName}/Core/Inc</includepath>
-      <includepath workspace_path="true">/${ProjName}/Third_part/freeRTOS/Source/portable/MemMang</includepath>
       <includepath workspace_path="true">/${ProjName}/Third_part/FatFs</includepath>
       <includepath workspace_path="true">/${ProjName}/ BSP/Inc</includepath>
       <includepath workspace_path="true">/${ProjName}/App/Inc</includepath>

@@ -15,6 +15,7 @@ static SemaphoreHandle_t m_i2c1 = NULL;
 static SemaphoreHandle_t m_rtc = NULL;
 
 static SemaphoreHandle_t m_tim1 = NULL;
+static SemaphoreHandle_t m_tim2 = NULL;
 
 static SemaphoreHandle_t m_can_tx = NULL;
 static SemaphoreHandle_t m_can_rx = NULL;
@@ -168,6 +169,23 @@ static void TIM1_MutexGive(void)
 	}
 }
 
+/* TIM2 take and give semaphore */
+static void TIM2_MutexTake(void)
+{
+	if(m_tim2!= NULL)
+	{
+		xSemaphoreTake(m_tim2, portMAX_DELAY);
+	}
+}
+
+static void TIM2_MutexGive(void)
+{
+	if(m_tim2 != NULL)
+	{
+		xSemaphoreGive(m_tim2);
+	}
+}
+
 /* CAN transmit and receive take and give semaphore */
 static void CAN_TxMutexTake(void)
 {
@@ -230,6 +248,9 @@ static void TIM_RegisterMutexes(void)
 	/* Create all timers Mutexes */
 	m_tim1 = xSemaphoreCreateMutex();
 	configASSERT(m_tim1 != NULL);
+
+	m_tim2 = xSemaphoreCreateMutex();
+	configASSERT(m_tim2 != NULL);
 }
 
 static void CAN_RegisterMutex(void)
@@ -574,6 +595,18 @@ DevStatus_t OSAL_RTC_GetDataDateTime(RTC_DateTypeDef* pdate, RTC_TimeTypeDef* pt
 	return ret;
 }
 
+/* Thread-safe get difference between previous and current values */
+int32_t OSAL_MOTOR_CONTROL_GetEncoderDifference(void)
+{
+	TIM2_MutexTake();
+
+	int32_t result = BSP_MOTOR_CONTROL_GetEncoderDifference();
+
+	TIM2_MutexGive();
+
+	return result;
+}
+
 /* Set PWM and motor state */
 DevStatus_t OSAL_MOTOR_ChangePWM_State(float pwm_percent, uint8_t MOTOR_STATE)
 {
@@ -582,52 +615,6 @@ DevStatus_t OSAL_MOTOR_ChangePWM_State(float pwm_percent, uint8_t MOTOR_STATE)
 	DevStatus_t ret = BSP_MOTOR_ChangePWM_State(pwm_percent, MOTOR_STATE);
 
 	TIM1_MutexGive();
-
-	return ret;
-}
-
-DevStatus_t OSAL_Init(void)
-{
-	/* Registration callback function */
-	DevStatus_t ret = BSP_UART_LOG_RegisterTxCpltCallbak(UART3_TxCpltCallbak);
-	if(ret != DRV_OK)
-	{
-		return ret;
-	}
-
-	ret = BSP_DS18B20_RegisterRxCpltCallbak(UART4_TxRxCpltCallbak);
-	if(ret != DRV_OK)
-	{
-		return ret;
-	}
-
-	ret = BSP_INA219_RegisterRxCpltCallbak(I2C1_TxRxCpltCallbak);
-	if(ret != DRV_OK)
-	{
-		return ret;
-	}
-
-	ret = BSP_MCU_COMMUNICATION_RegisterTxCpltCallback(CAN_TxCpltCallback);
-	if(ret != DRV_OK)
-	{
-		return DRV_INIT_NEEDED;
-	}
-
-	ret = BSP_MCU_COMMUNICATION_RegisterRxFifo0MsgPendingCallback(CAN_RxFifo0MsgPendingCallback);
-	if(ret != DRV_OK)
-	{
-		return DRV_INIT_NEEDED;
-	}
-
-	/* SDIO already has freeRTOS integration via SD BSP uses in diskio.c and FatFs. Since they are third-party files, I am keeping their default architectures */
-
-	/* Registration structures */
-	UART_RegisterMutexes();
-	I2C_RegisterMutexes();
-	RTC_RegisterMutex();
-	TIM_RegisterMutexes();
-	CAN_RegisterMutex();
-	CAN_RegisterQueues();
 
 	return ret;
 }
@@ -682,6 +669,52 @@ DevStatus_t OSAL_USER_COMMUNICATION_ReceiveMessage(CAN_RxMessage_t* can_rx_buf, 
 
 	CAN_RxMutexGive();
 	return DRV_OK;
+}
+
+DevStatus_t OSAL_Init(void)
+{
+	/* Registration callback function */
+	DevStatus_t ret = BSP_UART_LOG_RegisterTxCpltCallbak(UART3_TxCpltCallbak);
+	if(ret != DRV_OK)
+	{
+		return ret;
+	}
+
+	ret = BSP_DS18B20_RegisterRxCpltCallbak(UART4_TxRxCpltCallbak);
+	if(ret != DRV_OK)
+	{
+		return ret;
+	}
+
+	ret = BSP_INA219_RegisterRxCpltCallbak(I2C1_TxRxCpltCallbak);
+	if(ret != DRV_OK)
+	{
+		return ret;
+	}
+
+	ret = BSP_MCU_COMMUNICATION_RegisterTxCpltCallback(CAN_TxCpltCallback);
+	if(ret != DRV_OK)
+	{
+		return DRV_INIT_NEEDED;
+	}
+
+	ret = BSP_MCU_COMMUNICATION_RegisterRxFifo0MsgPendingCallback(CAN_RxFifo0MsgPendingCallback);
+	if(ret != DRV_OK)
+	{
+		return DRV_INIT_NEEDED;
+	}
+
+	/* SDIO already has freeRTOS integration via SD BSP uses in diskio.c and FatFs. Since they are third-party files, I am keeping their default architectures */
+
+	/* Registration structures */
+	UART_RegisterMutexes();
+	I2C_RegisterMutexes();
+	RTC_RegisterMutex();
+	TIM_RegisterMutexes();
+	CAN_RegisterMutex();
+	CAN_RegisterQueues();
+
+	return ret;
 }
 
 
