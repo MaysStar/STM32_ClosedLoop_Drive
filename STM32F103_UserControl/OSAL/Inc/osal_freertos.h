@@ -44,4 +44,6 @@ DevStatus_t OSAL_DISPLAY_WriteString(char* str, uint32_t str_len, uint32_t x, ui
 DevStatus_t OSAL_USER_COMMUNICATION_SendMessage(CAN_TxMessage_t* can_tx_buf, uint32_t can_tx_buf_len);
 DevStatus_t OSAL_USER_COMMUNICATION_ReceiveMessage(CAN_RxMessage_t* can_rx_buf, uint32_t can_rx_buf_len);
 
+void OSAL_PWR_StandbyMode(void);
+
 #endif /* OSAL_FREERTOS_H */

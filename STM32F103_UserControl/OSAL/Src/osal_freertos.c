@@ -1,3 +1,4 @@
+
 #include "osal_freertos.h"
 
 /* private variables */
@@ -13,6 +14,8 @@ static SemaphoreHandle_t m_spi1 = NULL;
 
 static SemaphoreHandle_t m_can_tx = NULL;
 static SemaphoreHandle_t m_can_rx = NULL;
+
+static SemaphoreHandle_t m_pwr = NULL;
 
 static QueueHandle_t q_can_rx = NULL;
 
@@ -140,6 +143,14 @@ static void CAN_RxMutexGive(void)
 	}
 }
 
+static void PWR_MutexTake(void)
+{
+	if(m_pwr!= NULL)
+	{
+		xSemaphoreTake(m_pwr, portMAX_DELAY);
+	}
+}
+
 static void ADC1_RegisterMutex(void)
 {
 	m_adc1 = xSemaphoreCreateMutex();
@@ -158,13 +169,19 @@ static void SPI1_RegisterMutex(void)
 	configASSERT(m_spi1 != NULL);
 }
 
-static void CAN_RegisterMutex(void)
+static void CAN_RegisterMutexes(void)
 {
 	m_can_tx = xSemaphoreCreateMutex();
 	configASSERT(m_can_tx != NULL);
 
 	m_can_rx = xSemaphoreCreateMutex();
 	configASSERT(m_can_rx != NULL);
+}
+
+static void PWR_RegisterMutex(void)
+{
+	m_pwr = xSemaphoreCreateMutex();
+	configASSERT(m_pwr != NULL);
 }
 
 static void CAN_RegisterQueue(void)
@@ -198,7 +215,8 @@ DevStatus_t OSAL_Init(void)
 	ADC1_RegisterMutex();
 	RTC_RegisterMutex();
 	SPI1_RegisterMutex();
-	CAN_RegisterMutex();
+	CAN_RegisterMutexes();
+	PWR_RegisterMutex();
 
 	CAN_RegisterQueue();
 
@@ -656,4 +674,11 @@ DevStatus_t OSAL_USER_COMMUNICATION_ReceiveMessage(CAN_RxMessage_t* can_rx_buf, 
 
 	CAN_RxMutexGive();
 	return DRV_OK;
+}
+
+void OSAL_PWR_StandbyMode(void)
+{
+	PWR_MutexTake();
+
+	BSP_COMMON_PowerOff();
 }
