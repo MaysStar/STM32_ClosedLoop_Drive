@@ -7,7 +7,7 @@ static IWDG_HandleTypeDef* local_piwdg = NULL;
 static RTC_HandleTypeDef* local_prtc = NULL;
 
 static volatile uint8_t motor_direction_button_state = APP_HOUSEKEEPING_BUTTON_PASSIVE;
-static volatile uint8_t sleep_mode_button_state = APP_HOUSEKEEPING_BUTTON_PASSIVE;
+static volatile uint8_t sleep_mode_button_state = APP_HOUSEKEEPING_BUTTON_ACTIVE;
 
 static TaskHandle_t housekeeping_handle = NULL;
 static void housekeeping_task(void* pvParameters);
@@ -67,8 +67,8 @@ static void housekeeping_task(void* pvParameters)
 	while(1)
 	{
 		/* Check buttons state */
-		motor_direction_button_state = (uint8_t)HAL_GPIO_ReadPin(APP_HOUSEKEEPING_BUTTONS_GPIO_PORT, APP_HOUSEKEEPING_BUTTONS_MOTOR_DIRECTION_GPIO_PIN);
-		sleep_mode_button_state = (uint8_t)HAL_GPIO_ReadPin(APP_HOUSEKEEPING_BUTTONS_GPIO_PORT, APP_HOUSEKEEPING_BUTTONS_SLEEP_MODE_GPIO_PIN);
+		motor_direction_button_state = (uint8_t)HAL_GPIO_ReadPin(APP_HOUSEKEEPING_BUTTONS_GPIO_PORTB, APP_HOUSEKEEPING_BUTTONS_MOTOR_DIRECTION_GPIO_PIN);
+		sleep_mode_button_state = (uint8_t)HAL_GPIO_ReadPin(APP_HOUSEKEEPING_BUTTONS_GPIO_PORTA, APP_HOUSEKEEPING_BUTTONS_SLEEP_MODE_GPIO_PIN);
 
 		if(OSAL_RTC_GetDataDateTime(&date, &time) != DRV_OK)
 		{
@@ -85,13 +85,13 @@ static void housekeeping_task(void* pvParameters)
 
 		/* Check buttons state second time */
 		if((motor_direction_button_state == APP_HOUSEKEEPING_BUTTON_ACTIVE) &&
-		   (HAL_GPIO_ReadPin(APP_HOUSEKEEPING_BUTTONS_GPIO_PORT, APP_HOUSEKEEPING_BUTTONS_MOTOR_DIRECTION_GPIO_PIN) == APP_HOUSEKEEPING_BUTTON_ACTIVE))
+		   (HAL_GPIO_ReadPin(APP_HOUSEKEEPING_BUTTONS_GPIO_PORTB, APP_HOUSEKEEPING_BUTTONS_MOTOR_DIRECTION_GPIO_PIN) == APP_HOUSEKEEPING_BUTTON_ACTIVE))
 		{
 			APP_STATE_Set_MotorDirection();
 		}
 
-		if((sleep_mode_button_state == APP_HOUSEKEEPING_BUTTON_ACTIVE) &&
-		   (HAL_GPIO_ReadPin(APP_HOUSEKEEPING_BUTTONS_GPIO_PORT, APP_HOUSEKEEPING_BUTTONS_SLEEP_MODE_GPIO_PIN) == APP_HOUSEKEEPING_BUTTON_ACTIVE))
+		if((sleep_mode_button_state == APP_HOUSEKEEPING_BUTTON_PASSIVE) &&
+		   (HAL_GPIO_ReadPin(APP_HOUSEKEEPING_BUTTONS_GPIO_PORTA, APP_HOUSEKEEPING_BUTTONS_SLEEP_MODE_GPIO_PIN) == APP_HOUSEKEEPING_BUTTON_PASSIVE))
 		{
 			APP_STATE_Set_SleepMode();
 		}
