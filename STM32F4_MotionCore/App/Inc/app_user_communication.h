@@ -28,9 +28,10 @@
 #define APP_CAN_LOGS_STATE_ID	0x06U
 
 #define APP_CAN_TARGET_SPEED_ID	0x50U
+#define APP_CAN_MOTOT_DIR_ID	0x51U
 
 #define APP_CAN_TX_BUF_LEN 		6U
-#define APP_CAN_RX_BUF_LEN 		1U
+#define APP_CAN_RX_BUF_LEN 		2U
 
 void APP_USER_COMMUNICATION_Init(CAN_HandleTypeDef* pcan);
 

@@ -75,6 +75,26 @@ void APP_STATE_Set_MotorTargetSpeed(uint32_t motor_target_speed)
 	}
 }
 
+/* Thread-safe buttons value setting */
+void APP_STATE_Set_MotorDirection(void)
+{
+	if(xSemaphoreTake(m_global_data, portMAX_DELAY) == pdTRUE)
+	{
+		GlobalDataState.motor_direction ^= APP_STATE_MOTOR_BACKWARD;
+		xSemaphoreGive(m_global_data);
+	}
+}
+
+/* Thread-safe buttons value setting */
+void APP_STATE_Set_SleepMode(void)
+{
+	if(xSemaphoreTake(m_global_data, portMAX_DELAY) == pdTRUE)
+	{
+		GlobalDataState.mcu_sleep_mode ^= APP_STATE_MCU_SPEED_MODE_PASSIVE;
+		xSemaphoreGive(m_global_data);
+	}
+}
+
 /* Set data and states from MCU CAN communication */
 void APP_STATE_Set_CommunicationData(GlobalData_t comm_data)
 {

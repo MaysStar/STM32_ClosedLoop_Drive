@@ -47,6 +47,7 @@ typedef struct{
 	/* from 0 to 100 percent */
 	float real_motor_speed;
 	float target_motor_speed;
+	uint32_t motor_direction;
 	MororState_t motor_state;
 }GlobalData_t;
 
@@ -62,6 +63,7 @@ void APP_STATE_Set_Date_Time(RTC_DateTypeDef date, RTC_TimeTypeDef time);
 void APP_STATE_Set_Sensors(float temp, float current_A, float power_W, float voltage_v);
 
 void APP_STATE_Set_Motor_TargetSpeed(float target_motor_speed);
+void APP_STATE_Set_Motor_Direction(uint8_t motor_dir);
 void APP_STATE_Set_Motor_ActualSpeed(float real_motor_speed);
 
 void APP_STATE_Set_Motor_State(MororState_t motor_state);

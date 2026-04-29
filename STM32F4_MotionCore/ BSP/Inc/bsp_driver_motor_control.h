@@ -16,7 +16,9 @@
 #define MOTOR_GPIO_PIN_FORWARD GPIO_PIN_10
 #define MOTOR_GPIO_PIN_BACKWARD GPIO_PIN_11
 
-DevStatus_t BSP_MOTOR_CONTROL_Init(TIM_HandleTypeDef* ptim1);
+DevStatus_t BSP_MOTOR_CONTROL_Init(TIM_HandleTypeDef* ptim1, TIM_HandleTypeDef* ptim2);
+
+int32_t BSP_MOTOR_CONTROL_GetEncoderDifference(void);
 DevStatus_t BSP_MOTOR_ChangePWM_State(float pwm_percent, uint8_t FOR_BACK_WARD);
 
 #endif /* BSP_DRIVER_MOTOR_CONTROL_H */

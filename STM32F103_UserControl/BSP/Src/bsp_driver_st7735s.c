@@ -113,10 +113,10 @@ DevStatus_t BSP_ST7735S_Init(SPI_HandleTypeDef* pspi1)
 		BSP_ST7735S_RES_HIGH();
 		BSP_ST7735S_CS_LOW();
 
-		delay_us(20);
+		delay_us(50);
 		BSP_ST7735S_RES_LOW();
 
-		delay_us(20);
+		delay_us(50);
 		BSP_ST7735S_RES_HIGH();
 
 		HAL_Delay(120);

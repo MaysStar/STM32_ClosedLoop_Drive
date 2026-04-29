@@ -19,6 +19,7 @@ void APP_USER_CONTROL_Init(ADC_HandleTypeDef* padc1, SPI_HandleTypeDef* pspi1)
 			HAL_Delay(200);
 			break;
 		}
+		HAL_Delay(100);
 	}
 
 	for(uint32_t i = 0; i < 3; ++i)
@@ -42,6 +43,8 @@ static void motor_target_speed_task(void* pvParameters)
 	static char display_buf_time_speed[APP_USER_CONTROL_DISPLAY_BUF_LEN];
 
 	static char display_buf_motor_speed_state[APP_USER_CONTROL_DISPLAY_BUF_LEN];
+	static char display_buf_motor_direction[APP_USER_CONTROL_DISPLAY_BUF_LEN];
+
 	static char display_buf_current_voltage[APP_USER_CONTROL_DISPLAY_BUF_LEN];
 	static char display_buf_temterature_logs_state[APP_USER_CONTROL_DISPLAY_BUF_LEN];
 
@@ -99,6 +102,9 @@ static void motor_target_speed_task(void* pvParameters)
 		snprintf((char*)display_buf_motor_speed_state, sizeof(display_buf_motor_speed_state), "a_speed: %03lu motor_state: %02d",
 						globa_data_state.motor_actual_speed, globa_data_state.motor_state);
 
+		snprintf((char*)display_buf_motor_direction, sizeof(display_buf_motor_direction), "motor_dirrection: %d",
+										globa_data_state.motor_direction);
+
 		snprintf((char*)display_buf_current_voltage, sizeof(display_buf_current_voltage), "current_mA: %04lu voltage: %02lu",
 						globa_data_state.current_mA, globa_data_state.voltage_V);
 
@@ -142,9 +148,7 @@ static void motor_target_speed_task(void* pvParameters)
 			APP_STATE_Update_Error(ERR_DISPLAY, ERR_ACTIVE);
 		}
 
-		vTaskDelay(pdMS_TO_TICKS(1));
-
-		res = OSAL_DISPLAY_WriteString(display_buf_current_voltage, strlen(display_buf_current_voltage), FONT_WIDTH * 2, display_text_y_offset + FONT_HEIGHT * 3, RGB255(0, 0, 0), RGB255(255, 255, 255));
+		res = OSAL_DISPLAY_WriteString(display_buf_motor_direction, strlen(display_buf_motor_direction), FONT_WIDTH * 2, display_text_y_offset + FONT_HEIGHT * 3, RGB255(0, 0, 0), RGB255(255, 255, 255));
 
 		if(res == DRV_OK)
 		{
@@ -157,7 +161,20 @@ static void motor_target_speed_task(void* pvParameters)
 
 		vTaskDelay(pdMS_TO_TICKS(1));
 
-		res = OSAL_DISPLAY_WriteString(display_buf_temterature_logs_state, strlen(display_buf_temterature_logs_state), FONT_WIDTH * 2, display_text_y_offset + FONT_HEIGHT * 4, RGB255(0, 0, 0), RGB255(255, 255, 255));
+		res = OSAL_DISPLAY_WriteString(display_buf_current_voltage, strlen(display_buf_current_voltage), FONT_WIDTH * 2, display_text_y_offset + FONT_HEIGHT * 4, RGB255(0, 0, 0), RGB255(255, 255, 255));
+
+		if(res == DRV_OK)
+		{
+			APP_STATE_Update_Error(ERR_DISPLAY, ERR_NOT_ACTIVE);
+		}
+		else
+		{
+			APP_STATE_Update_Error(ERR_DISPLAY, ERR_ACTIVE);
+		}
+
+		vTaskDelay(pdMS_TO_TICKS(1));
+
+		res = OSAL_DISPLAY_WriteString(display_buf_temterature_logs_state, strlen(display_buf_temterature_logs_state), FONT_WIDTH * 2, display_text_y_offset + FONT_HEIGHT * 5, RGB255(0, 0, 0), RGB255(255, 255, 255));
 
 		if(res == DRV_OK)
 		{

@@ -12,7 +12,7 @@ void APP_Main(AppHardwareConfig_t* app_hw)
 	APP_LOGS_Init(app_hw->phsd, app_hw->phuart3);
 	APP_SENSORS_Init(app_hw->phuart4, app_hw->phi2c1);
 	APP_HOUSEKEEPING_Init(app_hw->phiwdg, app_hw->prtc);
-	APP_MOTOR_CONTROL_init(app_hw->ptim1);
+	APP_MOTOR_CONTROL_init(app_hw->ptim1, app_hw->ptim2);
 	APP_MOTOR_SAFETY_USER_CONTROL_Init();
 	APP_USER_COMMUNICATION_Init(app_hw->pcan1);
 
