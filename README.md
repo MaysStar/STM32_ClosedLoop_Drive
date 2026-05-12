@@ -1,7 +1,13 @@
 Project Overview: Closed-Loop Drive System
 
-This project is a multi-node closed-loop drive control system consisting of two main processing units: STM32F407 and STM32F103 (Blue Pill).
-1. Motion Control Node (STM32F407)
+### STM32_ClosedLoop_Drive video demonstration 
+
+[![Watch video](https://img.youtube.com/vi/i_icI5O8THY/maxresdefault.jpg)](https://www.youtube.com/watch?v=i_icI5O8THY)
+
+*Click on the image above to go to watch the video on YouTube*
+
+This project is a multi-node closed-loop drive control system consisting of two main processing units: STM32F412RET and STM32F103 (Blue Pill).
+1. Motion Control Node (STM32F412RET)
 
 The core of the system, responsible for high-speed motor regulation and data management:
 
@@ -32,6 +38,3 @@ A dedicated MCU for human-machine interaction:
         OSAL (Operating System Abstraction Layer): Integration of FreeRTOS features, thread-safe DMA operations, and synchronization.
 
         APP (Application Layer): High-level logic for user applications and control algorithms.
-
-UART logs print
-![alt text](image.png)
