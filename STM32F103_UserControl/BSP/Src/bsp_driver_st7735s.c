@@ -90,8 +90,8 @@ static DevStatus_t BSP_ST7735S_Init_Command(void)
 			}
 		}
 
-		if (command == SWRESET) HAL_Delay(120);
-		if (command == SLPOUT)  HAL_Delay(120);
+		if (command == SWRESET) delay_us(10000);
+		if (command == SLPOUT)  delay_us(10000);
 	}
 
 	/* Finish communication */
@@ -119,7 +119,8 @@ DevStatus_t BSP_ST7735S_Init(SPI_HandleTypeDef* pspi1)
 		delay_us(50);
 		BSP_ST7735S_RES_HIGH();
 
-		HAL_Delay(120);
+		//HAL_Delay(120);
+		delay_us(50);
 
 		ret = BSP_ST7735S_Init_Command();
 

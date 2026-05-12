@@ -16,10 +16,10 @@ void APP_USER_CONTROL_Init(ADC_HandleTypeDef* padc1, SPI_HandleTypeDef* pspi1)
 		if(BSP_ST7735S_Init(pspi1) == DRV_OK)
 		{
 			APP_STATE_Update_Error_BeforeRTOSStart(ERR_DISPLAY, ERR_NOT_ACTIVE);
-			HAL_Delay(200);
+			//HAL_Delay(200);
 			break;
 		}
-		HAL_Delay(100);
+		//HAL_Delay(100);
 	}
 
 	for(uint32_t i = 0; i < 3; ++i)
@@ -105,7 +105,7 @@ static void motor_target_speed_task(void* pvParameters)
 		snprintf((char*)display_buf_motor_direction, sizeof(display_buf_motor_direction), "motor_dirrection: %d",
 										globa_data_state.motor_direction);
 
-		snprintf((char*)display_buf_current_voltage, sizeof(display_buf_current_voltage), "current_mA: %04lu voltage: %02lu",
+		snprintf((char*)display_buf_current_voltage, sizeof(display_buf_current_voltage), "currentmA: %04lu voltage: %02lu",
 						globa_data_state.current_mA, globa_data_state.voltage_V);
 
 		snprintf((char*)display_buf_temterature_logs_state, sizeof(display_buf_temterature_logs_state), "temp_C: %03ld logs_state: %02d",
