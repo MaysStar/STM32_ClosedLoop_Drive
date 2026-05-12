@@ -119,7 +119,7 @@ int main(void)
   MX_ADC1_Init();
   MX_RTC_Init();
   MX_SPI1_Init();
-  MX_IWDG_Init();
+//  MX_IWDG_Init();
   MX_CAN_Init();
   /* USER CODE BEGIN 2 */
 

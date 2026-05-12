@@ -104,7 +104,7 @@ void vApplicationIdleHook(void)
 {
 	if((local_piwdg != NULL))
 	{
-		HAL_IWDG_Refresh(local_piwdg);
+		//HAL_IWDG_Refresh(local_piwdg);
 	}
 }
 
