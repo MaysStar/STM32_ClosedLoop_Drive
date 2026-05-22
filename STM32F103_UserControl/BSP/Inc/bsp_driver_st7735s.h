@@ -7,7 +7,7 @@
 /*
  * Schematic ST7735S
  *
- * BLK -> 3.3V
+ * BLK -> B11
  * CS  -> A10
  * DC  -> B7
  * RES -> B6
