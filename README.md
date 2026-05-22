@@ -6,6 +6,13 @@ Project Overview: Closed-Loop Drive System
 
 *Click on the image above to go to watch the video on YouTube*
 
+### STM32_ClosedLoop_Drive printed circuit board
+<img width="940" height="727" alt="Знімок екрана 2026-05-22 155104" src="https://github.com/user-attachments/assets/fcc2e99e-c863-4274-9e0c-054161d413b2" />
+
+<img width="1028" height="610" alt="Знімок екрана 2026-05-22 155144" src="https://github.com/user-attachments/assets/43a33a32-3432-4a42-9bb3-cde67a3d1eea" />
+
+<img width="835" height="803" alt="Знімок екрана 2026-05-22 155350" src="https://github.com/user-attachments/assets/df593df4-488a-4a20-8f8a-d4754a2b5fc8" />
+
 This project is a multi-node closed-loop drive control system consisting of two main processing units: STM32F412RET and STM32F103 (Blue Pill).
 1. Motion Control Node (STM32F412RET)
 
